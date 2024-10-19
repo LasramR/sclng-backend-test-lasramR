@@ -26,14 +26,14 @@ type GitHubProjectLanguagesStats struct {
 }
 
 type GithubService interface {
-	GetGithubProjectsWithStats(ctx context.Context) (*[]GitHubProject, error)
+	GetGithubProjectsWithStats(ctx context.Context) ([]*GitHubProject, error)
 }
 
 type GithubServiceImpl struct {
 	GithubRepository repositories.GithubApiRepository
 }
 
-func (ghService *GithubServiceImpl) GetGithubProjects(ctx context.Context) ([]*GitHubProject, error) {
+func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context) ([]*GitHubProject, error) {
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
