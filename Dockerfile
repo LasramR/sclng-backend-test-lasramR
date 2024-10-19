@@ -3,6 +3,6 @@ LABEL maintainer="LasramR <pro@remi-marsal.com>"
 
 RUN go install github.com/cespare/reflex@latest
 
-WORKDIR $GOPATH/src/github.com/Scalingo/sclng-backend-test-lasramR
+WORKDIR $GOPATH/src/github.com/LasramR/sclng-backend-test-lasramR
 
 CMD $GOPATH/bin/sclng-backend-test-lasramR

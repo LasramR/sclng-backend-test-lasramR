@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./:/go/src/github.com/Scalingo/sclng-backend-test-lasramR
+      - ./:/go/src/github.com/LasramR/sclng-backend-test-lasramR
     ports:
       - "${PORT:-5000}:${PORT:-5000}"
     command: reflex -r '\.go$$' -s -- sh -c 'go build -buildvcs=false && ./sclng-backend-test-lasramR'

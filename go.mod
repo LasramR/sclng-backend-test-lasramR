@@ -1,4 +1,4 @@
-module github.com/Scalingo/sclng-backend-test-lasramR
+module github.com/LasramR/sclng-backend-test-lasramR
 
 go 1.23.2
 
