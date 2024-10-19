@@ -1,0 +1,19 @@
+name: "Continuous Integration"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: golang:1.23.2-alpine3.20
+    steps:
+      - run: go install github.com/mfridman/tparse@latest
+      - run: go test -v ./... -cover -json | tparse -all -smallscreen
+  
+  build:
+    needs: check
+    runs-on: golang:1.23.2-alpine3.20
+    steps:
+      - run: go build -buildvcs=false
