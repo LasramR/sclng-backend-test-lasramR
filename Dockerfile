@@ -1,10 +1,8 @@
-FROM golang:1.20
-LABEL maintainer="Infrastructure Services Team <team-infrastructure-services@scalingo.com>"
+FROM golang:1.23.2-alpine3.20
+LABEL maintainer="LasramR <pro@remi-marsal.com>"
 
 RUN go install github.com/cespare/reflex@latest
 
-WORKDIR $GOPATH/src/github.com/Scalingo/sclng-backend-test-v1
+WORKDIR $GOPATH/src/github.com/Scalingo/sclng-backend-test-lasramR
 
-EXPOSE 5000
-
-CMD $GOPATH/bin/sclng-backend-test-v1
+CMD $GOPATH/bin/sclng-backend-test-lasramR

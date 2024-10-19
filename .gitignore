@@ -1,1 +1,6 @@
-sclng-backend-test-v1
+# bin
+sclng-backend-test-lasramR
+
+# env files
+*.env
+!.env.example
