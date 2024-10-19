@@ -1,7 +1,9 @@
 package http_provider
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -15,20 +17,31 @@ type NativeHttpProvider struct {
 	client *NativeHttpClient
 }
 
-func (provider *NativeHttpProvider) GetJson(url string, payload any) error {
+func (provider *NativeHttpProvider) GetJson(ctx context.Context, url string, payload any) error {
 	request, err := provider.client.NewRequest(http.MethodGet, url, nil)
 
 	if err != nil {
 		return err
 	}
 
-	response, err := provider.client.Do(request)
+	responseCh := make(chan error)
+	defer close(responseCh)
 
-	if err != nil {
+	go func() {
+		response, err := provider.client.Do(request)
+		if err != nil {
+			responseCh <- err
+		} else {
+			defer response.Body.Close()
+			responseCh <- json.NewDecoder(response.Body).Decode(payload)
+		}
+	}()
+	select {
+	case err := <-responseCh:
 		return err
+	case <-ctx.Done():
+		return errors.New("request timeout")
 	}
-
-	return json.NewDecoder(response.Body).Decode(payload)
 }
 
 func NewNativeHttpProvider(client *NativeHttpClient) *NativeHttpProvider {

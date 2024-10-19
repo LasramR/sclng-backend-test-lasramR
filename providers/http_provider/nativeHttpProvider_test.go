@@ -2,11 +2,13 @@ package http_provider
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 )
 
 type DoReturnT struct {
@@ -42,7 +44,7 @@ func TestGetJson_NewRequestFails(t *testing.T) {
 	))
 
 	var result GetJsonResponseT
-	err := httpProvider.GetJson("https://somedataendpoint.io", &result)
+	err := httpProvider.GetJson(context.Background(), "https://somedataendpoint.io", &result)
 
 	if err.Error() != "NewRequest" {
 		t.Fatalf("should return an error when NewRequest fails")
@@ -56,7 +58,7 @@ func TestGetJson_DoFails(t *testing.T) {
 	))
 
 	var result GetJsonResponseT
-	err := httpProvider.GetJson("https://somedataendpoint.io", &result)
+	err := httpProvider.GetJson(context.Background(), "https://somedataendpoint.io", &result)
 
 	if err.Error() != "Do" {
 		t.Fatalf("should return an error when Do fails")
@@ -72,10 +74,32 @@ func TestGetJson_DecodeFails(t *testing.T) {
 	))
 
 	var result GetJsonResponseT
-	err := httpProvider.GetJson("https://somedataendpoint.io", &result)
+	err := httpProvider.GetJson(context.Background(), "https://somedataendpoint.io", &result)
 
 	if err == nil {
 		t.Fatalf("should return an error when unmarshalling fails")
+	}
+}
+
+func TestGetJson_Timeout(t *testing.T) {
+	httpProvider := NewNativeHttpProvider(&NativeHttpClient{
+		Do: func(req *http.Request) (*http.Response, error) {
+			time.Sleep(time.Second * 10)
+			return nil, nil
+		},
+		NewRequest: func(method string, url string, body io.Reader) (*http.Request, error) {
+			return &http.Request{}, nil
+		},
+	})
+
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), time.Second*1)
+	defer cancelTimeout()
+
+	var result GetJsonResponseT
+	err := httpProvider.GetJson(timeoutCtx, "https://somedataendpoint.io", &result)
+
+	if err.Error() != "request timeout" {
+		t.Fatalf("should have failed because of context timeout")
 	}
 }
 
@@ -90,7 +114,7 @@ func TestGetJson_Valid(t *testing.T) {
 	var expected = GetJsonResponseT{Key: "a", Value: 1}
 
 	var result GetJsonResponseT
-	err := httpProvider.GetJson("https://somedataendpoint.io", &result)
+	err := httpProvider.GetJson(context.Background(), "https://somedataendpoint.io", &result)
 
 	if err != nil {
 		t.Fatalf("should not have return an error")
