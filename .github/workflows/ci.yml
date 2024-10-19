@@ -9,7 +9,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Go
         uses: ./.github/actions/setup
       - name: Run tests
         shell: bash
@@ -22,7 +24,9 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     steps:
-      - name: Setup
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Go
         uses: ./.github/actions/setup
       - name: Build app
         shell: bash

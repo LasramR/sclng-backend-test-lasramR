@@ -1,12 +1,8 @@
-name: "Setup Go and Checkout Code"
-description: "Checks out the code and sets up Go"
+name: "Setup Go"
+description: "Sets up Go"
 runs:
   using: "composite"
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 20
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
