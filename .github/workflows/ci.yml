@@ -7,13 +7,25 @@ on:
 
 jobs:
   check:
-    runs-on: golang:1.23.2-alpine3.20
+    runs-on: ubuntu-latest
     steps:
-      - run: go install github.com/mfridman/tparse@latest
-      - run: go test -v ./... -cover -json | tparse -all -smallscreen
+      - name: Setup
+        uses: ./.github/actions/setup
+      - name: Run tests
+        shell: bash
+        run: |
+          go install github.com/mfridman/tparse@latest
+          go mod download
+          go test -v ./... -cover -json | tparse -all -smallscreen
   
   build:
     needs: check
-    runs-on: golang:1.23.2-alpine3.20
+    runs-on: ubuntu-latest
     steps:
-      - run: go build -buildvcs=false
+      - name: Setup
+        uses: ./.github/actions/setup
+      - name: Build app
+        shell: bash
+        run: |
+          go mod download
+          go build -buildvcs=false
