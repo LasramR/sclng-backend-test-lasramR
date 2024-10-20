@@ -30,14 +30,15 @@ type RepositoriesResponseItem struct {
 	Size         int                                 `json:"size"`
 }
 
-// Represent an item's owner from a RepositoriesResponseItem
+// Represents an item's owner from a RepositoriesResponseItem
 type ItemOwner struct {
 	Login string `json:"login"`
 }
 
+// Represents an item's license from a RepositoriesResponseItem
 type ItemLicense struct {
 	Key string `json:"key"`
 }
 
-// Represent a response from a language_url of a RepositoriesResponseItem
+// Represents a response from a language_url of a RepositoriesResponseItem
 type Languages map[string]int

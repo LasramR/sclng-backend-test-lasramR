@@ -4,6 +4,7 @@ import (
 	"slices"
 )
 
+// Returns an alphabetically sorted list of the keys of a map[string]any
 func SortedKeys[T any](m map[string]T) []string {
 	keys := make([]string, 0, len(m))
 

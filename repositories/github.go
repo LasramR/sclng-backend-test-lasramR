@@ -10,20 +10,25 @@ import (
 	"github.com/LasramR/sclng-backend-test-lasramR/builder"
 	"github.com/LasramR/sclng-backend-test-lasramR/model"
 	"github.com/LasramR/sclng-backend-test-lasramR/model/external"
+	"github.com/LasramR/sclng-backend-test-lasramR/model/version"
 	"github.com/LasramR/sclng-backend-test-lasramR/providers"
 	"github.com/LasramR/sclng-backend-test-lasramR/util"
 )
 
 type GithubRepositoriesResult struct {
-	Repositories     []*model.Repository `json:"repositories"`
-	Total            int                 `json:"total"`
-	IncompleteResult bool                `json:"incomplete_result"`
+	Repositories []*model.Repository `json:"repositories"`
+	Total        int                 `json:"total"`
+	// Set to true if some sub aggregations failed
+	IncompleteResult bool `json:"incomplete_result"`
 }
 
+// Allow to interact with the GitHub REST API
 type GithubApiRepository interface {
+	// Fetch many repositories, error != nil if
 	GetManyRepositories(ctx context.Context, grb builder.GithubRequestBuilder) (GithubRepositoriesResult, error)
 }
 
+// Parametized implementation of the GitHub repository that abstracts the entity mapping process
 type githubVersionnedApiRepository[T any, M util.Mappable[T]] struct {
 	githubToken   string
 	httpProvider  providers.HttpProvider
@@ -60,7 +65,8 @@ func (gr *githubVersionnedApiRepository[T, M]) GetManyRepositories(ctx context.C
 		time.Second*30,
 	)
 
-	if len(errorsCollected) == 0 {
+	// If we had some results, we cache it
+	if len(errorsCollected) != len(apiResponse.Items()) {
 		_ = gr.cacheProvider.SetMarshalled(ctx, requestUrl, repositories, time.Minute*5)
 	}
 
@@ -71,13 +77,15 @@ func (gr *githubVersionnedApiRepository[T, M]) GetManyRepositories(ctx context.C
 	}, nil
 }
 
-func NewGithubApiRepository(apiVersion builder.GithubAPIVersion, httpProvider providers.HttpProvider, cacheProvider providers.CacheProvider, githubToken string) (GithubApiRepository, error) {
+// Factory method that creates a GithubApiRepository for a specific API version, err != nil if API version is not supported
+func NewGithubApiRepository(apiVersion version.GithubAPIVersion, httpProvider providers.HttpProvider, cacheProvider providers.CacheProvider, githubToken string) (GithubApiRepository, error) {
 	switch apiVersion {
-	case builder.GITHUB_API_2022_11_28:
+	case version.GITHUB_API_2022_11_28:
 		return &githubVersionnedApiRepository[external.RepositoriesResponseItem, external.RepositoriesResponse]{
 			githubToken:   githubToken,
 			httpProvider:  httpProvider,
 			cacheProvider: cacheProvider,
+			// Mapper function converts items of the external model to our model
 			mapperFunc: func(ctx context.Context, rawRepository external.RepositoriesResponseItem) (*model.Repository, error) {
 				req, err := http.NewRequest(http.MethodGet, rawRepository.LanguagesUrl, nil)
 

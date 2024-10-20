@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/LasramR/sclng-backend-test-lasramR/model/version"
 	"github.com/LasramR/sclng-backend-test-lasramR/util"
 )
 
@@ -27,83 +28,78 @@ type GithubRequestBuilder interface {
 	Page(value int) error
 }
 
-type GithubAPIVersion string
+// Following types are used for function composition in order to abstract the request building process
 
-// Supported github api version by the GithubRequestBuilder
-const (
-	GITHUB_API_2022_11_28 GithubAPIVersion = "2022-11-28"
-)
-
-type githubParamSetter func(hrb *HttpRequestBuilder, params map[string]string)
-type githubSortSetter func(hrb *HttpRequestBuilder, sort string)
-type authorizationSetter func(hrb *HttpRequestBuilder, authorization string)
-type limitSetter func(hrb *HttpRequestBuilder, limit int)
-type pageSetter func(hrb *HttpRequestBuilder, page int)
+type githubParamSetter func(hrb *util.HttpRequestBuilder, params map[string]string)
+type githubSortSetter func(hrb *util.HttpRequestBuilder, sort string)
+type authorizationSetter func(hrb *util.HttpRequestBuilder, authorization string)
+type limitSetter func(hrb *util.HttpRequestBuilder, limit int)
+type pageSetter func(hrb *util.HttpRequestBuilder, page int)
 
 type githubRequestBuilderAPIVersionned struct {
-	ApiVersion              GithubAPIVersion
-	ApiBaseUrl              string
-	AuthorizationSetterFunc authorizationSetter
-	AuthorizationValue      string
-	SupportedParams         []string
-	ParamSetterFunc         githubParamSetter
-	Params                  map[string]string
-	SupportedSort           []string
-	SortSetter              githubSortSetter
-	SortBy                  string
-	LimitSetterFunc         limitSetter
-	MaxLimit                int
-	LimitValue              int
-	PageSetterFunc          pageSetter
-	PageValue               int
+	apiVersion              version.GithubAPIVersion
+	apiBaseUrl              string
+	authorizationSetterFunc authorizationSetter
+	authorizationValue      string
+	supportedParams         []string
+	paramSetterFunc         githubParamSetter
+	params                  map[string]string
+	supportedSort           []string
+	sortSetter              githubSortSetter
+	sortBy                  string
+	limitSetterFunc         limitSetter
+	maxLimit                int
+	limitValue              int
+	pageSetterFunc          pageSetter
+	pageValue               int
 }
 
 func (grb *githubRequestBuilderAPIVersionned) Build(ctx context.Context, method, url string) (*http.Request, error) {
 	var fullUrl string
-	if strings.HasSuffix(grb.ApiBaseUrl, "/") {
-		fullUrl = grb.ApiBaseUrl + url
-	} else if grb.ApiBaseUrl == "" {
+	if strings.HasSuffix(grb.apiBaseUrl, "/") {
+		fullUrl = grb.apiBaseUrl + url
+	} else if grb.apiBaseUrl == "" {
 		fullUrl = url
 	} else {
-		fullUrl = fmt.Sprintf("%s%s", grb.ApiBaseUrl, url)
+		fullUrl = fmt.Sprintf("%s%s", grb.apiBaseUrl, url)
 	}
 
-	hrb := NewHttpRequestBuilder(method, fullUrl)
+	hrb := util.NewHttpRequestBuilder(method, fullUrl)
 
-	if grb.AuthorizationValue != "" {
-		grb.AuthorizationSetterFunc(hrb, grb.AuthorizationValue)
+	if grb.authorizationValue != "" {
+		grb.authorizationSetterFunc(hrb, grb.authorizationValue)
 	}
 
-	if len(grb.Params) != 0 {
-		grb.ParamSetterFunc(hrb, grb.Params)
+	if len(grb.params) != 0 {
+		grb.paramSetterFunc(hrb, grb.params)
 	}
 
-	if grb.SortBy != "" {
-		grb.SortSetter(hrb, grb.SortBy)
+	if grb.sortBy != "" {
+		grb.sortSetter(hrb, grb.sortBy)
 	}
 
-	grb.LimitSetterFunc(hrb, grb.LimitValue)
-	grb.PageSetterFunc(hrb, grb.PageValue)
+	grb.limitSetterFunc(hrb, grb.limitValue)
+	grb.pageSetterFunc(hrb, grb.pageValue)
 
 	return hrb.BuildRequest(ctx)
 }
 
 func (grb *githubRequestBuilderAPIVersionned) Authorization(value string) {
 	if value != "" {
-		grb.AuthorizationValue = value
+		grb.authorizationValue = value
 	}
 }
 func (grb *githubRequestBuilderAPIVersionned) With(key, value string) error {
-	if slices.Contains(grb.SupportedParams, key) && value != "" {
-		grb.Params[key] = value
+	if slices.Contains(grb.supportedParams, key) && value != "" {
+		grb.params[key] = value
 		return nil
 	}
 
 	return fmt.Errorf("%s parameter is not supported", key)
 }
 func (grb *githubRequestBuilderAPIVersionned) Sort(value string) error {
-	if slices.Contains(grb.SupportedSort, value) {
-		grb.SortBy = value
+	if slices.Contains(grb.supportedSort, value) {
+		grb.sortBy = value
 		return nil
 	}
 
@@ -111,11 +107,11 @@ func (grb *githubRequestBuilderAPIVersionned) Sort(value string) error {
 }
 
 func (grb *githubRequestBuilderAPIVersionned) Limit(value int) error {
-	if value < 1 || grb.MaxLimit < value {
-		return fmt.Errorf("parameter limit %d is exceeding max limit of %d", value, grb.MaxLimit)
+	if value < 1 || grb.maxLimit < value {
+		return fmt.Errorf("parameter limit %d is exceeding max limit of %d", value, grb.maxLimit)
 	}
 
-	grb.LimitValue = value
+	grb.limitValue = value
 	return nil
 }
 
@@ -124,30 +120,30 @@ func (grb *githubRequestBuilderAPIVersionned) Page(value int) error {
 		return fmt.Errorf("page parameter %d must be greater than 0", value)
 	}
 
-	grb.PageValue = value
+	grb.pageValue = value
 	return nil
 }
 
 // Factory method that creates a GithubRequestBuilder for a specific API version, err != nil if API version is not supported
-func NewGithubRequestBuilder(ApiVersion GithubAPIVersion) (GithubRequestBuilder, error) {
+func NewGithubRequestBuilder(ApiVersion version.GithubAPIVersion) (GithubRequestBuilder, error) {
 	switch ApiVersion {
-	case GITHUB_API_2022_11_28:
+	case version.GITHUB_API_2022_11_28:
 		return &githubRequestBuilderAPIVersionned{
-			ApiVersion:    GITHUB_API_2022_11_28,
-			ApiBaseUrl:    "https://api.github.com",
-			SupportedSort: []string{"created", "updated", "comments"},
-			AuthorizationSetterFunc: func(hrb *HttpRequestBuilder, authorization string) {
+			apiVersion:    version.GITHUB_API_2022_11_28,
+			apiBaseUrl:    "https://api.github.com",
+			supportedSort: []string{"created", "updated", "comments"},
+			authorizationSetterFunc: func(hrb *util.HttpRequestBuilder, authorization string) {
 				hrb.AddHeader("Authorization", []string{fmt.Sprintf("Bearer %s", authorization)})
 			},
-			SupportedParams: []string{
+			supportedParams: []string{
 				"language",
 				"license",
 				"user",
 				"org",
 				"repo",
 			},
-			Params: map[string]string{"is": "public"},
-			ParamSetterFunc: func(hrb *HttpRequestBuilder, params map[string]string) {
+			params: map[string]string{"is": "public"},
+			paramSetterFunc: func(hrb *util.HttpRequestBuilder, params map[string]string) {
 				stringifiedParams := make([]string, 0, len(params))
 				for _, k := range util.SortedKeys(params) { // Ensure that request url is deterministic for caching purposes
 					v := params[k]
@@ -155,18 +151,17 @@ func NewGithubRequestBuilder(ApiVersion GithubAPIVersion) (GithubRequestBuilder,
 				}
 				hrb.AddQueryParam("q", strings.Join(stringifiedParams, " "))
 			},
-			SortSetter: func(hrb *HttpRequestBuilder, sort string) {
-				// TODO handle sorting
+			sortSetter: func(hrb *util.HttpRequestBuilder, sort string) {
 			},
-			MaxLimit: 100,
-			LimitSetterFunc: func(hrb *HttpRequestBuilder, limit int) {
+			maxLimit: 100,
+			limitSetterFunc: func(hrb *util.HttpRequestBuilder, limit int) {
 				hrb.AddQueryParam("per_page", fmt.Sprintf("%d", limit))
 			},
-			LimitValue: 100,
-			PageSetterFunc: func(hrb *HttpRequestBuilder, page int) {
+			limitValue: 100,
+			pageSetterFunc: func(hrb *util.HttpRequestBuilder, page int) {
 				hrb.AddQueryParam("page", fmt.Sprintf("%d", page))
 			},
-			PageValue: 1,
+			pageValue: 1,
 		}, nil
 	default:
 		return nil, errors.New("unsupported github api version")

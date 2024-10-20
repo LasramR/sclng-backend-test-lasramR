@@ -8,6 +8,7 @@ import (
 	redis "github.com/redis/go-redis/v9"
 )
 
+// Allow to perform cache related operations
 type CacheProvider interface {
 	// Retrieve and Unmarshall an element from the cache
 	GetUnmarshalled(ctx context.Context, key string, unmarshalledPayload any) error
@@ -21,11 +22,11 @@ type RedisClient struct {
 	Set func(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 }
 
-type RedisCacheProvider struct {
+type redisCacheProvider struct {
 	client *RedisClient
 }
 
-func (r *RedisCacheProvider) GetUnmarshalled(ctx context.Context, key string, unmarshalledPayload any) error {
+func (r *redisCacheProvider) GetUnmarshalled(ctx context.Context, key string, unmarshalledPayload any) error {
 	payload, err := r.client.Get(ctx, key).Result()
 
 	if err != nil {
@@ -35,7 +36,7 @@ func (r *RedisCacheProvider) GetUnmarshalled(ctx context.Context, key string, un
 	return json.Unmarshal([]byte(payload), unmarshalledPayload)
 }
 
-func (r *RedisCacheProvider) SetMarshalled(ctx context.Context, key string, value any, expiresIn time.Duration) error {
+func (r *redisCacheProvider) SetMarshalled(ctx context.Context, key string, value any, expiresIn time.Duration) error {
 	marshalled, err := json.Marshal(value)
 
 	if err != nil {
@@ -46,7 +47,7 @@ func (r *RedisCacheProvider) SetMarshalled(ctx context.Context, key string, valu
 }
 
 func NewRedisCacheProvider(redisClient *RedisClient) CacheProvider {
-	return &RedisCacheProvider{
+	return &redisCacheProvider{
 		client: &RedisClient{
 			Get: redisClient.Get,
 			Set: redisClient.Set,

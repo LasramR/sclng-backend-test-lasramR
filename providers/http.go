@@ -5,11 +5,13 @@ import (
 	"net/http"
 )
 
+// Allow to perform http related operations
 type HttpProvider interface {
 	// Perform a HTTP request and unmarshals the response body into unMarshalledResBody argument
 	ReqUnmarshalledBody(req *http.Request, unMarshalledResBody any) error
 }
 
+// IoC of the http client
 type NativeHttpClient struct {
 	Do func(req *http.Request) (*http.Response, error)
 }
@@ -29,7 +31,7 @@ func (provider *NativeHttpProvider) ReqUnmarshalledBody(req *http.Request, unMar
 	return json.NewDecoder(response.Body).Decode(unMarshalledResBody)
 }
 
-func NewNativeHttpProvider(client NativeHttpClient) *NativeHttpProvider {
+func NewNativeHttpProvider(client NativeHttpClient) HttpProvider {
 	return &NativeHttpProvider{
 		client: client,
 	}

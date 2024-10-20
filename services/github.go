@@ -8,7 +8,9 @@ import (
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 )
 
+// Github service business logic
 type GithubService interface {
+	// Returns repositories with computed stats from GithubAPIRepository
 	GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) (repositories.GithubRepositoriesResult, error)
 }
 
@@ -16,11 +18,11 @@ type GithubServiceImpl struct {
 	GithubRepository repositories.GithubApiRepository
 }
 
-func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) (repositories.GithubRepositoriesResult, error) {
+func (gs *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) (repositories.GithubRepositoriesResult, error) {
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
-	result, err := ghService.GithubRepository.GetManyRepositories(timeoutCtx, grb)
+	result, err := gs.GithubRepository.GetManyRepositories(timeoutCtx, grb)
 
 	if err != nil {
 		return repositories.GithubRepositoriesResult{}, err
@@ -29,8 +31,8 @@ func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Conte
 	return result, nil
 }
 
-func NewGithubServiceImpl(ghRepository repositories.GithubApiRepository) *GithubServiceImpl {
+func NewGithubService(gr repositories.GithubApiRepository) GithubService {
 	return &GithubServiceImpl{
-		GithubRepository: ghRepository,
+		GithubRepository: gr,
 	}
 }

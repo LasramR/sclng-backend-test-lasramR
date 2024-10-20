@@ -6,10 +6,12 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/LasramR/sclng-backend-test-lasramR/model/version"
 )
 
 func TestGithubRequestBuilder_UnsupportedVersion(t *testing.T) {
-	unsupportedVersion := GithubAPIVersion("Unsupported")
+	unsupportedVersion := version.GithubAPIVersion("Unsupported")
 	_, err := NewGithubRequestBuilder(unsupportedVersion)
 
 	if err == nil {
@@ -18,10 +20,10 @@ func TestGithubRequestBuilder_UnsupportedVersion(t *testing.T) {
 }
 
 func TestGithubRequestBuilder_20221128(t *testing.T) {
-	grb, err := NewGithubRequestBuilder(GITHUB_API_2022_11_28)
+	grb, err := NewGithubRequestBuilder(version.GITHUB_API_2022_11_28)
 
 	if err != nil {
-		t.Fatalf("Github API version %s should be supported", GITHUB_API_2022_11_28)
+		t.Fatalf("Github API version %s should be supported", version.GITHUB_API_2022_11_28)
 	}
 
 	_ = grb.With("language", "Python")
@@ -35,22 +37,22 @@ func TestGithubRequestBuilder_20221128(t *testing.T) {
 	}
 
 	if !strings.Contains(req.URL.String(), url.QueryEscape("is:public")) {
-		t.Fatalf("GithubRequestBuilder %s missing is:public from built request URL", GITHUB_API_2022_11_28)
+		t.Fatalf("GithubRequestBuilder %s missing is:public from built request URL", version.GITHUB_API_2022_11_28)
 	}
 
 	if !strings.Contains(req.URL.String(), url.QueryEscape("language:Python")) {
-		t.Fatalf("GithubRequestBuilder %s missing language:Python from built request URL", GITHUB_API_2022_11_28)
+		t.Fatalf("GithubRequestBuilder %s missing language:Python from built request URL", version.GITHUB_API_2022_11_28)
 	}
 
 	if !strings.Contains(req.URL.String(), url.QueryEscape("license:apache-2.0")) {
-		t.Fatalf("GithubRequestBuilder %s missing license:apache-2.0 from built request URL", GITHUB_API_2022_11_28)
+		t.Fatalf("GithubRequestBuilder %s missing license:apache-2.0 from built request URL", version.GITHUB_API_2022_11_28)
 	}
 
 	if !strings.Contains(req.URL.String(), "per_page=80") {
-		t.Fatalf("GithubRequestBuilder %s missing per_page=80 from built request URL", GITHUB_API_2022_11_28)
+		t.Fatalf("GithubRequestBuilder %s missing per_page=80 from built request URL", version.GITHUB_API_2022_11_28)
 	}
 
 	if !strings.Contains(req.URL.String(), "page=1") {
-		t.Fatalf("GithubRequestBuilder %s missing page=1 from built request URL", GITHUB_API_2022_11_28)
+		t.Fatalf("GithubRequestBuilder %s missing page=1 from built request URL", version.GITHUB_API_2022_11_28)
 	}
 }

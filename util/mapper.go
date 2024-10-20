@@ -13,10 +13,12 @@ type Mappable[T any] interface {
 
 type MapperFunc[S, D any] func(ctx context.Context, s S) (D, error)
 
-func AsyncListMapper[S any, A Mappable[S], D any](ctx context.Context, source A, mapFunc MapperFunc[S, D], timeout time.Duration) ([]D, []error) {
+// Given a Mappable source of type S, asynchronously transform the element to an array of type D
+// Also returns a list of errors that occured during mapping process, check for error with len(errs) != 0
+func AsyncListMapper[S any, A Mappable[S], D any](ctx context.Context, source A, mapFunc MapperFunc[S, D], timeout time.Duration) ([]D, []*error) {
 	sourceCount := len(source.Items())
 	mapped := make([]D, sourceCount)
-	errorsCollected := make([]error, 0)
+	errorsCollected := make([]*error, 0)
 
 	var wg sync.WaitGroup
 	respCh := make(chan *IndexedResult[D], sourceCount)
@@ -31,7 +33,7 @@ func AsyncListMapper[S any, A Mappable[S], D any](ctx context.Context, source A,
 
 			if d, err := mapFunc(timeoutCtx, s); err != nil {
 				respCh <- &IndexedResult[D]{
-					Error: err,
+					Error: &err,
 					Index: index,
 				}
 			} else {

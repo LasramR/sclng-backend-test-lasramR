@@ -7,13 +7,14 @@ import (
 	"os"
 
 	"github.com/LasramR/sclng-backend-test-lasramR/api"
-	"github.com/LasramR/sclng-backend-test-lasramR/builder"
+	"github.com/LasramR/sclng-backend-test-lasramR/model/version"
 	"github.com/LasramR/sclng-backend-test-lasramR/providers"
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 	"github.com/LasramR/sclng-backend-test-lasramR/services"
 	"github.com/Scalingo/go-handlers"
 	"github.com/Scalingo/go-utils/logger"
 	redis "github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -30,10 +31,11 @@ func main() {
 		log.Warn("Booting without the use of a Github token: the application will run in limited mode")
 	}
 
-	log.Info("Initializing services")
+	log.Info("Initializing Providers")
 	httpProvider := providers.NewNativeHttpProvider(providers.NativeHttpClient{
 		Do: http.DefaultClient.Do,
 	})
+	log.WithFields(logrus.Fields{"HttpClient": "Native"}).Info("HTTP")
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("redis:%d", cfg.RedisPort),
@@ -50,9 +52,11 @@ func main() {
 		Get: rdb.Get,
 		Set: rdb.Set,
 	})
+	log.WithFields(logrus.Fields{"CacheClient": "Redis"}).Info("Cache")
 
+	log.WithFields(logrus.Fields{}).Info("Initializing services")
 	githubApiRepository, err := repositories.NewGithubApiRepository(
-		builder.GITHUB_API_2022_11_28,
+		version.GITHUB_API_2022_11_28,
 		httpProvider,
 		cacheProvider,
 		cfg.GithubToken,
@@ -60,14 +64,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not initialize github repository")
 	}
-
-	githubService := services.NewGithubServiceImpl(githubApiRepository)
+	githubService := services.NewGithubService(githubApiRepository)
 
 	log.Info("Initializing routes")
 	router := handlers.NewRouter(log)
-	router.HandleFunc("/repositories", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService, cacheProvider, builder.GITHUB_API_2022_11_28)))
-	// GET /repos
-	// GET /stats
+	router.HandleFunc("/repos", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService, cacheProvider, version.GITHUB_API_2022_11_28)))
 
 	log = log.WithField("port", cfg.Port)
 	log.Info("Listening...")

@@ -10,6 +10,7 @@ import (
 
 	"github.com/LasramR/sclng-backend-test-lasramR/builder"
 	"github.com/LasramR/sclng-backend-test-lasramR/model"
+	"github.com/LasramR/sclng-backend-test-lasramR/model/version"
 	"github.com/LasramR/sclng-backend-test-lasramR/providers"
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 	"github.com/LasramR/sclng-backend-test-lasramR/services"
@@ -17,17 +18,19 @@ import (
 	"github.com/Scalingo/go-utils/logger"
 )
 
-func errorFallback[T any](w http.ResponseWriter, err T, status int) error {
-	response := model.ApiError[T]{
+// Compute error object and marshal it in request response writer
+func errorFallback(w http.ResponseWriter, errs []string, status int) error {
+	response := model.ApiError{
 		Status: status,
-		Reason: err,
+		Reason: errs,
 	}
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(response)
 }
 
-func success(w http.ResponseWriter, r *http.Request, repos repositories.GithubRepositoriesResult) error {
-	response := model.ApiResponse[[]*model.Repository]{
+// Compute success object and marshal it in request response writer
+func successFallback(w http.ResponseWriter, r *http.Request, repos repositories.GithubRepositoriesResult) error {
+	response := model.ApiListResponse[[]*model.Repository]{
 		TotalCount:       repos.Total,
 		Count:            len(repos.Repositories),
 		Content:          repos.Repositories,
@@ -46,26 +49,33 @@ func success(w http.ResponseWriter, r *http.Request, repos repositories.GithubRe
 	return json.NewEncoder(w).Encode(response)
 }
 
+// /repos HTTP handle
 func GitHubProjectsHandler(
 	githubService services.GithubService,
 	cacheProvider providers.CacheProvider,
-	apiVersion builder.GithubAPIVersion,
+	apiVersion version.GithubAPIVersion,
 ) util.ScalingoHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, _ map[string]string) error {
 		ctx := r.Context()
-		requestUrl := util.FullUrlFromRequest(r)
 		log := logger.Get(ctx)
 
+		// Only respond to GET
+		if r.Method != http.MethodGet {
+			return errorFallback(w, []string{"GET only endpoint"}, http.StatusMethodNotAllowed)
+		}
+
+		requestUrl := util.FullUrlFromRequest(r)
 		var repos repositories.GithubRepositoriesResult = repositories.GithubRepositoriesResult{}
+		// Returns if successful cache read from requestUrl
 		if err := cacheProvider.GetUnmarshalled(ctx, requestUrl, &repos); err == nil {
-			return success(w, r, repos)
+			return successFallback(w, r, repos)
 		}
 
 		grb, err := builder.NewGithubRequestBuilder(apiVersion)
 
 		if err != nil {
 			log.WithError(err).Error(err)
-			return errorFallback(w, err.Error(), http.StatusServiceUnavailable)
+			return errorFallback(w, []string{err.Error()}, http.StatusServiceUnavailable)
 		}
 
 		queryParams := r.URL.Query()
@@ -78,12 +88,12 @@ func GitHubProjectsHandler(
 			if err != nil {
 				err = errors.New("invalid limit parameter")
 				log.WithError(err).Error(err)
-				return errorFallback(w, err.Error(), http.StatusBadRequest)
+				return errorFallback(w, []string{err.Error()}, http.StatusBadRequest)
 			}
 
 			if err := grb.Limit(parsedLimit); err != nil {
 				log.WithError(err).Error(err)
-				return errorFallback(w, err.Error(), http.StatusBadRequest)
+				return errorFallback(w, []string{err.Error()}, http.StatusBadRequest)
 			}
 		}
 
@@ -95,12 +105,12 @@ func GitHubProjectsHandler(
 			if err != nil {
 				err = errors.New("invalid page parameter")
 				log.WithError(err).Error(err)
-				return errorFallback(w, err.Error(), http.StatusBadRequest)
+				return errorFallback(w, []string{err.Error()}, http.StatusBadRequest)
 			}
 
 			if err := grb.Page(parsedPage); err != nil {
 				log.WithError(err).Error(err)
-				return errorFallback(w, err.Error(), http.StatusBadRequest)
+				return errorFallback(w, []string{err.Error()}, http.StatusBadRequest)
 			}
 		}
 
@@ -125,12 +135,13 @@ func GitHubProjectsHandler(
 
 		if err != nil {
 			log.WithError(err).Error(err)
-			return errorFallback(w, err, http.StatusInternalServerError)
+			return errorFallback(w, []string{err.Error()}, http.StatusInternalServerError)
 		}
 
+		// Set in cache
 		_ = cacheProvider.SetMarshalled(ctx, requestUrl, repos, time.Minute*5)
 
-		return success(w, r, repos)
+		return successFallback(w, r, repos)
 	}
 
 }
