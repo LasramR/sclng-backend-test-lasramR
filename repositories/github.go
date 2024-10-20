@@ -30,9 +30,6 @@ func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context) (e
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
-	if ghRepository.githubToken != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ghRepository.githubToken))
-	}
 	req = req.WithContext(timeoutCtx)
 
 	var projects external.RepositoriesResponse
