@@ -1,50 +1,30 @@
 package http_provider
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"io"
 	"net/http"
 )
 
 type NativeHttpClient struct {
-	Do         func(req *http.Request) (*http.Response, error)
-	NewRequest func(method string, url string, body io.Reader) (*http.Request, error)
+	Do func(req *http.Request) (*http.Response, error)
 }
 
 type NativeHttpProvider struct {
-	client *NativeHttpClient
+	client NativeHttpClient
 }
 
-func (provider *NativeHttpProvider) GetJson(ctx context.Context, url string, payload any) error {
-	request, err := provider.client.NewRequest(http.MethodGet, url, nil)
+func (provider *NativeHttpProvider) ReqUnmarshalledBody(req *http.Request, unMarshalledResBody any) error {
+	response, err := provider.client.Do(req)
 
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
-	responseCh := make(chan error)
-	defer close(responseCh)
-
-	go func() {
-		response, err := provider.client.Do(request)
-		if err != nil {
-			responseCh <- err
-		} else {
-			defer response.Body.Close()
-			responseCh <- json.NewDecoder(response.Body).Decode(payload)
-		}
-	}()
-	select {
-	case err := <-responseCh:
-		return err
-	case <-ctx.Done():
-		return errors.New("request timeout")
-	}
+	return json.NewDecoder(response.Body).Decode(unMarshalledResBody)
 }
 
-func NewNativeHttpProvider(client *NativeHttpClient) *NativeHttpProvider {
+func NewNativeHttpProvider(client NativeHttpClient) *NativeHttpProvider {
 	return &NativeHttpProvider{
 		client: client,
 	}

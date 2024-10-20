@@ -1,7 +1,9 @@
 package http_provider
 
-import "context"
+import (
+	"net/http"
+)
 
 type HttpProvider interface {
-	GetJson(ctx context.Context, url string, payload any) error
+	ReqUnmarshalledBody(req *http.Request, unMarshalledResBody any) error
 }

@@ -15,6 +15,7 @@ import (
 
 func main() {
 	log := logger.Default()
+
 	log.Info("Initializing app")
 	cfg, err := newConfig()
 	if err != nil {
@@ -22,20 +23,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("Initializing routes")
-	router := handlers.NewRouter(log)
+	if cfg.GithubToken == "" {
+		log.Warn("Booting without the use of a Github token: the application will run in limited mode")
+	}
 
-	httpProvider := http_provider.NewNativeHttpProvider(&http_provider.NativeHttpClient{
-		Do:         http.DefaultClient.Do,
-		NewRequest: http.NewRequest,
+	log.Info("Initializing services")
+	httpProvider := http_provider.NewNativeHttpProvider(http_provider.NativeHttpClient{
+		Do: http.DefaultClient.Do,
 	})
 	githubApiRepository := repositories.NewGithubApiRepositoryImpl(
-		"https://api.github.com/search/repositories?q=is:public&per_page=5",
+		"https://api.github.com/search/repositories?q=is:public&per_page=50",
+		cfg.GithubToken,
 		httpProvider,
 	)
 	githubService := services.NewGithubServiceImpl(githubApiRepository)
 
-	// Initialize web server and configure the following routes:
+	log.Info("Initializing routes")
+	router := handlers.NewRouter(log)
 	router.HandleFunc("/projects", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService)))
 	// GET /repos
 	// GET /stats
