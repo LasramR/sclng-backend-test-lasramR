@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/LasramR/sclng-backend-test-lasramR/model"
-	"github.com/LasramR/sclng-backend-test-lasramR/providers/http_provider"
+	provider "github.com/LasramR/sclng-backend-test-lasramR/providers"
 )
 
 type GithubApiRepository interface {
@@ -18,7 +18,7 @@ type GithubApiRepository interface {
 type GithubApiRepositoryImpl struct {
 	GithubApiBaseUrl string
 	githubToken      string
-	HttpProvider     http_provider.HttpProvider
+	HttpProvider     provider.HttpProvider
 }
 
 func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context) (model.GithubApiProjectsResponse, error) {
@@ -61,7 +61,7 @@ func (ghRepository *GithubApiRepositoryImpl) GetLanguages(ctx context.Context, p
 	return languages, err
 }
 
-func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider http_provider.HttpProvider) *GithubApiRepositoryImpl {
+func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider provider.HttpProvider) *GithubApiRepositoryImpl {
 	return &GithubApiRepositoryImpl{
 		GithubApiBaseUrl: githubApiBaseUrl,
 		githubToken:      githubToken,

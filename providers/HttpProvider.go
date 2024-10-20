@@ -1,9 +1,14 @@
-package http_provider
+package provider
 
 import (
 	"encoding/json"
 	"net/http"
 )
+
+type HttpProvider interface {
+	// Perform a HTTP request and unmarshals the response body into unMarshalledResBody argument
+	ReqUnmarshalledBody(req *http.Request, unMarshalledResBody any) error
+}
 
 type NativeHttpClient struct {
 	Do func(req *http.Request) (*http.Response, error)

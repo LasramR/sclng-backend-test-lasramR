@@ -1,4 +1,4 @@
-package http_provider
+package provider
 
 import (
 	"bytes"

@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/LasramR/sclng-backend-test-lasramR/api"
-	"github.com/LasramR/sclng-backend-test-lasramR/providers/http_provider"
+	provider "github.com/LasramR/sclng-backend-test-lasramR/providers"
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 	"github.com/LasramR/sclng-backend-test-lasramR/services"
 	"github.com/Scalingo/go-handlers"
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	log.Info("Initializing services")
-	httpProvider := http_provider.NewNativeHttpProvider(http_provider.NativeHttpClient{
+	httpProvider := provider.NewNativeHttpProvider(provider.NativeHttpClient{
 		Do: http.DefaultClient.Do,
 	})
 	githubApiRepository := repositories.NewGithubApiRepositoryImpl(
