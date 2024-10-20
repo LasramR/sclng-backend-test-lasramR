@@ -32,7 +32,7 @@ func main() {
 		Do: http.DefaultClient.Do,
 	})
 	githubApiRepository := repositories.NewGithubApiRepositoryImpl(
-		"https://api.github.com/search/repositories?q=is:public&per_page=50",
+		"https://api.github.com/search/repositories?q=is:public&per_page=5",
 		cfg.GithubToken,
 		httpProvider,
 	)
@@ -40,7 +40,7 @@ func main() {
 
 	log.Info("Initializing routes")
 	router := handlers.NewRouter(log)
-	router.HandleFunc("/projects", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService)))
+	router.HandleFunc("/repositories", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService)))
 	// GET /repos
 	// GET /stats
 

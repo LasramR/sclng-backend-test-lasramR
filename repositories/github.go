@@ -6,25 +6,25 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/LasramR/sclng-backend-test-lasramR/model"
-	provider "github.com/LasramR/sclng-backend-test-lasramR/providers"
+	"github.com/LasramR/sclng-backend-test-lasramR/model/external"
+	"github.com/LasramR/sclng-backend-test-lasramR/providers"
 )
 
 type GithubApiRepository interface {
-	GetProjects(ctx context.Context) (model.GithubApiProjectsResponse, error)
-	GetLanguages(ctx context.Context, project model.GithubApiProjectsResponseItem) (model.GithubApiLanguageURLResponse, error)
+	GetProjects(ctx context.Context) (external.RepositoriesResponse, error)
+	GetLanguages(ctx context.Context, project external.RepositoriesResponseItem) (external.Languages, error)
 }
 
 type GithubApiRepositoryImpl struct {
 	GithubApiBaseUrl string
 	githubToken      string
-	HttpProvider     provider.HttpProvider
+	HttpProvider     providers.HttpProvider
 }
 
-func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context) (model.GithubApiProjectsResponse, error) {
+func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context) (external.RepositoriesResponse, error) {
 	req, err := http.NewRequest(http.MethodGet, ghRepository.GithubApiBaseUrl, nil)
 	if err != nil {
-		return model.GithubApiProjectsResponse{}, nil
+		return external.RepositoriesResponse{}, nil
 	}
 
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
@@ -35,16 +35,16 @@ func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context) (m
 	}
 	req = req.WithContext(timeoutCtx)
 
-	var projects model.GithubApiProjectsResponse
+	var projects external.RepositoriesResponse
 	err = ghRepository.HttpProvider.ReqUnmarshalledBody(req, &projects)
 
 	return projects, err
 }
 
-func (ghRepository *GithubApiRepositoryImpl) GetLanguages(ctx context.Context, project model.GithubApiProjectsResponseItem) (model.GithubApiLanguageURLResponse, error) {
+func (ghRepository *GithubApiRepositoryImpl) GetLanguages(ctx context.Context, project external.RepositoriesResponseItem) (external.Languages, error) {
 	req, err := http.NewRequest(http.MethodGet, project.LanguagesUrl, nil)
 	if err != nil {
-		return model.GithubApiLanguageURLResponse{}, nil
+		return external.Languages{}, nil
 	}
 
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
@@ -55,13 +55,13 @@ func (ghRepository *GithubApiRepositoryImpl) GetLanguages(ctx context.Context, p
 	}
 	req = req.WithContext(timeoutCtx)
 
-	var languages model.GithubApiLanguageURLResponse
+	var languages external.Languages
 	err = ghRepository.HttpProvider.ReqUnmarshalledBody(req, &languages)
 
 	return languages, err
 }
 
-func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider provider.HttpProvider) *GithubApiRepositoryImpl {
+func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider providers.HttpProvider) *GithubApiRepositoryImpl {
 	return &GithubApiRepositoryImpl{
 		GithubApiBaseUrl: githubApiBaseUrl,
 		githubToken:      githubToken,

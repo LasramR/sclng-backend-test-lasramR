@@ -2,38 +2,25 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/LasramR/sclng-backend-test-lasramR/model"
+	"github.com/LasramR/sclng-backend-test-lasramR/model/external"
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 	"github.com/LasramR/sclng-backend-test-lasramR/util"
 )
 
-type GitHubProject struct {
-	FullName      string                                 `json:"full_name"`
-	Owner         string                                 `json:"owner"`
-	Repository    string                                 `json:"repository"`
-	RepositoryUrl string                                 `json:"repository_url"`
-	Languages     map[string]GitHubProjectLanguagesStats `json:"languages"`
-	License       util.NullableJsonField[string]         `json:"license"`
-	Size          int                                    `json:"size"`
-	UpdatedAt     string                                 `json:"updated_at"`
-}
-
-type GitHubProjectLanguagesStats struct {
-	Bytes int `json:"bytes"`
-}
-
 type GithubService interface {
-	GetGithubProjectsWithStats(ctx context.Context) ([]*GitHubProject, error)
+	GetGithubProjectsWithStats(ctx context.Context) ([]*model.Repository, error)
 }
 
 type GithubServiceImpl struct {
 	GithubRepository repositories.GithubApiRepository
 }
 
-func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context) ([]*GitHubProject, error) {
+func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context) ([]*model.Repository, error) {
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
@@ -44,17 +31,17 @@ func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Conte
 	}
 
 	projectCount := len(projectsFromApi.Items)
-	projects := make([]*GitHubProject, projectCount)
+	projects := make([]*model.Repository, projectCount)
 	wg := sync.WaitGroup{}
-	responseCh := make(chan *util.IndexedResult[*GitHubProject], projectCount)
+	responseCh := make(chan *util.IndexedResult[*model.Repository], projectCount)
 
 	for i, v := range projectsFromApi.Items {
 		wg.Add(1)
-		go func(rawProject model.GithubApiProjectsResponseItem, idx int) {
+		go func(rawProject external.RepositoriesResponseItem, idx int) {
 			defer wg.Done()
 
 			if err != nil {
-				responseCh <- &util.IndexedResult[*GitHubProject]{
+				responseCh <- &util.IndexedResult[*model.Repository]{
 					Value: nil,
 					Error: err,
 					Index: i,
@@ -68,18 +55,18 @@ func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Conte
 				if err != nil {
 				}
 
-				languages := make(map[string]GitHubProjectLanguagesStats)
+				languages := make(model.Language)
 				for k, v := range languagesApiResult {
-					languages[k] = GitHubProjectLanguagesStats{
+					languages[k] = model.LanguageStats{
 						Bytes: v,
 					}
 				}
-				responseCh <- &util.IndexedResult[*GitHubProject]{
-					Value: &GitHubProject{
+				responseCh <- &util.IndexedResult[*model.Repository]{
+					Value: &model.Repository{
 						FullName:      rawProject.FullName,
 						Owner:         rawProject.Owner.Login,
 						Repository:    rawProject.Name,
-						RepositoryUrl: rawProject.Url,
+						RepositoryUrl: fmt.Sprintf("https://github.com/%s", rawProject.FullName),
 						Languages:     languages,
 						License: util.NullableJsonField[string]{
 							Value:  rawProject.License.Value.Key,
