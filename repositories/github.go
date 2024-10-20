@@ -17,24 +17,35 @@ type GithubApiRepository interface {
 }
 
 type GithubApiRepositoryImpl struct {
-	githubToken  string
-	HttpProvider providers.HttpProvider
+	githubToken   string
+	HttpProvider  providers.HttpProvider
+	CacheProvider providers.CacheProvider
 }
 
 func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context, grb builder.GithubRequestBuilder) (external.RepositoriesResponse, error) {
 	grb.Authorization(ghRepository.githubToken)
 	req, err := grb.Build(ctx, http.MethodGet, "/search/repositories")
+
 	if err != nil {
 		return external.RepositoriesResponse{}, nil
+	}
+
+	requestUrl := req.URL.String()
+	var projects external.RepositoriesResponse
+
+	if err = ghRepository.CacheProvider.GetUnmarshalled(ctx, requestUrl, &projects); err == nil {
+		return projects, nil
 	}
 
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
 	req = req.WithContext(timeoutCtx)
-
-	var projects external.RepositoriesResponse
 	err = ghRepository.HttpProvider.ReqUnmarshalledBody(req, &projects)
+
+	if err == nil {
+		_ = ghRepository.CacheProvider.SetMarshalled(ctx, requestUrl, projects, time.Minute*5)
+	}
 
 	return projects, err
 }
@@ -45,23 +56,34 @@ func (ghRepository *GithubApiRepositoryImpl) GetLanguages(ctx context.Context, p
 		return external.Languages{}, nil
 	}
 
-	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
-	defer cancelTimeout()
+	requestUrl := project.LanguagesUrl
+	var languages external.Languages
+
+	if err = ghRepository.CacheProvider.GetUnmarshalled(ctx, requestUrl, &languages); err == nil {
+		return languages, nil
+	}
 
 	if ghRepository.githubToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ghRepository.githubToken))
 	}
+
+	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
+	defer cancelTimeout()
 	req = req.WithContext(timeoutCtx)
 
-	var languages external.Languages
 	err = ghRepository.HttpProvider.ReqUnmarshalledBody(req, &languages)
+
+	if err == nil {
+		_ = ghRepository.CacheProvider.SetMarshalled(ctx, requestUrl, languages, time.Minute*5)
+	}
 
 	return languages, err
 }
 
-func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider providers.HttpProvider) *GithubApiRepositoryImpl {
+func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider providers.HttpProvider, cacheProvider providers.CacheProvider) *GithubApiRepositoryImpl {
 	return &GithubApiRepositoryImpl{
-		githubToken:  githubToken,
-		HttpProvider: httpProvider,
+		githubToken:   githubToken,
+		HttpProvider:  httpProvider,
+		CacheProvider: cacheProvider,
 	}
 }

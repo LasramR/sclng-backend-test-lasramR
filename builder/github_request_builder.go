@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+
+	"github.com/LasramR/sclng-backend-test-lasramR/util"
 )
 
 // Provide mecanisms to build complex request to query Github API request
@@ -147,7 +149,8 @@ func NewGithubRequestBuilder(ApiVersion GithubAPIVersion) (GithubRequestBuilder,
 			Params: map[string]string{"is": "public"},
 			ParamSetterFunc: func(hrb *HttpRequestBuilder, params map[string]string) {
 				stringifiedParams := make([]string, 0, len(params))
-				for k, v := range params {
+				for _, k := range util.SortedKeys(params) { // Ensure that request url is deterministic for caching purposes
+					v := params[k]
 					stringifiedParams = append(stringifiedParams, fmt.Sprintf("%s:%s", k, v))
 				}
 				hrb.AddQueryParam("q", strings.Join(stringifiedParams, " "))

@@ -4,3 +4,6 @@ sclng-backend-test-lasramR
 # env files
 *.env
 !.env.example
+
+# cache
+.cache
