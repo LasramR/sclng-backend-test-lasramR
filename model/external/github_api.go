@@ -6,7 +6,15 @@ import "github.com/LasramR/sclng-backend-test-lasramR/util"
 type RepositoriesResponse struct {
 	TotalCount        int                        `json:"total_count"`
 	IncompleteResults bool                       `json:"incomplete_results"`
-	Items             []RepositoriesResponseItem `json:"items"`
+	Repositories      []RepositoriesResponseItem `json:"items"`
+}
+
+func (r RepositoriesResponse) Items() []RepositoriesResponseItem {
+	return r.Repositories
+}
+
+func (r RepositoriesResponse) Count() int {
+	return r.TotalCount
 }
 
 // Represents an item from a RepositoriesResponse

@@ -43,7 +43,7 @@ func main() {
 	})
 
 	if rdb.Ping(context.Background()).Err() != nil {
-		panic("could not connect to redis")
+		log.Fatalf("could not connect to redis")
 	}
 
 	cacheProvider := providers.NewRedisCacheProvider(&providers.RedisClient{
@@ -51,12 +51,16 @@ func main() {
 		Set: rdb.Set,
 	})
 
-	githubApiRepository := repositories.NewGithubApiRepositoryImpl(
-		"https://api.github.com/search/repositories?q=is:public&per_page=5",
-		cfg.GithubToken,
+	githubApiRepository, err := repositories.NewGithubApiRepository(
+		builder.GITHUB_API_2022_11_28,
 		httpProvider,
 		cacheProvider,
+		cfg.GithubToken,
 	)
+	if err != nil {
+		log.Fatalf("could not initialize github repository")
+	}
+
 	githubService := services.NewGithubServiceImpl(githubApiRepository)
 
 	log.Info("Initializing routes")

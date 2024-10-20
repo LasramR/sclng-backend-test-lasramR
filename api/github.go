@@ -11,6 +11,7 @@ import (
 	"github.com/LasramR/sclng-backend-test-lasramR/builder"
 	"github.com/LasramR/sclng-backend-test-lasramR/model"
 	"github.com/LasramR/sclng-backend-test-lasramR/providers"
+	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 	"github.com/LasramR/sclng-backend-test-lasramR/services"
 	"github.com/LasramR/sclng-backend-test-lasramR/util"
 	"github.com/Scalingo/go-utils/logger"
@@ -25,12 +26,12 @@ func errorFallback[T any](w http.ResponseWriter, err T, status int) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
-func success(w http.ResponseWriter, r *http.Request, projects []*model.Repository) error {
-	// TODO include metadatas about content total count
+func success(w http.ResponseWriter, r *http.Request, repos repositories.GithubRepositoriesResult) error {
 	response := model.ApiResponse[[]*model.Repository]{
-		Count:            len(projects),
-		Content:          projects,
-		IncompleteResult: true,
+		TotalCount:       repos.Total,
+		Count:            len(repos.Repositories),
+		Content:          repos.Repositories,
+		IncompleteResult: repos.IncompleteResult,
 		Page:             0,
 		Previous: util.NullableJsonField[string]{
 			IsNull: r.URL.Query().Get("page") == "",
@@ -55,9 +56,9 @@ func GitHubProjectsHandler(
 		requestUrl := util.FullUrlFromRequest(r)
 		log := logger.Get(ctx)
 
-		var projects []*model.Repository = make([]*model.Repository, 0, 100)
-		if err := cacheProvider.GetUnmarshalled(ctx, requestUrl, &projects); err == nil {
-			return success(w, r, projects)
+		var repos repositories.GithubRepositoriesResult = repositories.GithubRepositoriesResult{}
+		if err := cacheProvider.GetUnmarshalled(ctx, requestUrl, &repos); err == nil {
+			return success(w, r, repos)
 		}
 
 		grb, err := builder.NewGithubRequestBuilder(apiVersion)
@@ -119,17 +120,17 @@ func GitHubProjectsHandler(
 			return errorFallback(w, queryParamsErrors, http.StatusBadRequest)
 		}
 
-		// GIVE ME THESE PROJECTS
-		projects, err = githubService.GetGithubProjectsWithStats(ctx, grb)
+		// GIVE ME THESE REPOSITORIES
+		repos, err = githubService.GetGithubProjectsWithStats(ctx, grb)
 
 		if err != nil {
 			log.WithError(err).Error(err)
-			return errorFallback(w, err.Error(), http.StatusInternalServerError)
+			return errorFallback(w, err, http.StatusInternalServerError)
 		}
 
-		_ = cacheProvider.SetMarshalled(ctx, requestUrl, projects, time.Minute*5)
+		_ = cacheProvider.SetMarshalled(ctx, requestUrl, repos, time.Minute*5)
 
-		return success(w, r, projects)
+		return success(w, r, repos)
 	}
 
 }

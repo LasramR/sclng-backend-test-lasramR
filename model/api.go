@@ -3,6 +3,7 @@ package model
 import "github.com/LasramR/sclng-backend-test-lasramR/util"
 
 type ApiResponse[T any] struct {
+	TotalCount       int                            `json:"total_count"`
 	Count            int                            `json:"count"`
 	Content          T                              `json:"content"`
 	IncompleteResult bool                           `json:"incomplete_result"`
