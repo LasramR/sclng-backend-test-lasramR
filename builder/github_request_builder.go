@@ -13,8 +13,8 @@ import (
 type GithubRequestBuilder interface {
 	Build(ctx context.Context, method, baseUrl string) (*http.Request, error)
 	Authorization(value string)
-	With(key, value string)
-	Sort(value string)
+	With(key, value string) error
+	Sort(value string) error
 }
 
 type GithubAPIVersion string
@@ -41,8 +41,17 @@ type GithubRequestBuilderAPIVersionned struct {
 	sortBy                  string
 }
 
-func (grb *GithubRequestBuilderAPIVersionned) Build(ctx context.Context, method, baseUrl string) (*http.Request, error) {
-	hrb := NewHttpRequestBuilder(method, baseUrl)
+func (grb *GithubRequestBuilderAPIVersionned) Build(ctx context.Context, method, url string) (*http.Request, error) {
+	var fullUrl string
+	if strings.HasSuffix(grb.ApiBaseUrl, "/") {
+		fullUrl = grb.ApiBaseUrl + url
+	} else if grb.ApiBaseUrl == "" {
+		fullUrl = url
+	} else {
+		fullUrl = fmt.Sprintf("%s%s", grb.ApiBaseUrl, url)
+	}
+
+	hrb := NewHttpRequestBuilder(method, fullUrl)
 
 	if grb.authorization != "" {
 		grb.authorizationSetterFunc(hrb, grb.authorization)
@@ -64,15 +73,21 @@ func (grb *GithubRequestBuilderAPIVersionned) Authorization(value string) {
 		grb.authorization = value
 	}
 }
-func (grb *GithubRequestBuilderAPIVersionned) With(key, value string) {
+func (grb *GithubRequestBuilderAPIVersionned) With(key, value string) error {
 	if slices.Contains(grb.supportedParams, key) && value != "" {
 		grb.params[key] = value
+		return nil
 	}
+
+	return fmt.Errorf("%s parameter is not supported", key)
 }
-func (grb *GithubRequestBuilderAPIVersionned) Sort(value string) {
+func (grb *GithubRequestBuilderAPIVersionned) Sort(value string) error {
 	if slices.Contains(grb.supportedSort, value) {
 		grb.sortBy = value
+		return nil
 	}
+
+	return fmt.Errorf("%s sorting is not supported", value)
 }
 
 func NewGithubRequestBuilder(ApiVersion GithubAPIVersion) (GithubRequestBuilder, error) {
@@ -80,13 +95,19 @@ func NewGithubRequestBuilder(ApiVersion GithubAPIVersion) (GithubRequestBuilder,
 	case GITHUB_API_2022_11_28:
 		return &GithubRequestBuilderAPIVersionned{
 			ApiVersion:    GITHUB_API_2022_11_28,
-			ApiBaseUrl:    "https://api.github.com/search/repositories",
+			ApiBaseUrl:    "https://api.github.com",
 			supportedSort: []string{"created", "updated", "comments"},
 			authorizationSetterFunc: func(hrb *HttpRequestBuilder, authorization string) {
 				hrb.AddHeader("Authorization", []string{fmt.Sprintf("Bearer %s", authorization)})
 			},
-			supportedParams: []string{"language", "license"},
-			params:          make(map[string]string),
+			supportedParams: []string{
+				"language",
+				"license",
+				"user",
+				"org",
+				"repo",
+			},
+			params: map[string]string{"is": "public"},
 			paramSetterFunc: func(hrb *HttpRequestBuilder, params map[string]string) {
 				stringifiedParams := make([]string, 0, len(params))
 				for k, v := range params {

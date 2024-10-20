@@ -24,12 +24,12 @@ func TestGithubRequestBuilder_20221128(t *testing.T) {
 		t.Fatalf("Github API version %s should be supported", GITHUB_API_2022_11_28)
 	}
 
-	grb.With("language", "Python")
-	grb.With("license", "apache2.0")
+	_ = grb.With("language", "Python")
+	_ = grb.With("license", "apache2.0")
 
-	req, err := grb.Build(context.Background(), http.MethodGet, "https://api.github.com")
+	req, err := grb.Build(context.Background(), http.MethodGet, "/search/repositories")
 
-	expectedUrl := fmt.Sprintf("https://api.github.com?q=%s", url.QueryEscape("language:Python license:apache2.0"))
+	expectedUrl := fmt.Sprintf("https://api.github.com/search/repositories?q=%s", url.QueryEscape("is:public language:Python license:apache2.0"))
 
 	if err != nil {
 		t.Fatalf("Github request builder with valid parameters should not return an error")
@@ -37,6 +37,6 @@ func TestGithubRequestBuilder_20221128(t *testing.T) {
 
 	if req.URL.String() != expectedUrl {
 
-		t.Fatalf("GithubRequestBuilder %s URL formating error %s", GITHUB_API_2022_11_28, req.URL.String())
+		t.Fatalf("GithubRequestBuilder %s URL formating error", GITHUB_API_2022_11_28)
 	}
 }

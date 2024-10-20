@@ -6,23 +6,25 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/LasramR/sclng-backend-test-lasramR/builder"
 	"github.com/LasramR/sclng-backend-test-lasramR/model/external"
 	"github.com/LasramR/sclng-backend-test-lasramR/providers"
 )
 
 type GithubApiRepository interface {
-	GetProjects(ctx context.Context) (external.RepositoriesResponse, error)
+	GetProjects(ctx context.Context, grb builder.GithubRequestBuilder) (external.RepositoriesResponse, error)
 	GetLanguages(ctx context.Context, project external.RepositoriesResponseItem) (external.Languages, error)
 }
 
 type GithubApiRepositoryImpl struct {
-	GithubApiBaseUrl string
-	githubToken      string
-	HttpProvider     providers.HttpProvider
+	githubToken  string
+	HttpProvider providers.HttpProvider
 }
 
-func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context) (external.RepositoriesResponse, error) {
-	req, err := http.NewRequest(http.MethodGet, ghRepository.GithubApiBaseUrl, nil)
+func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context, grb builder.GithubRequestBuilder) (external.RepositoriesResponse, error) {
+	grb.Authorization(ghRepository.githubToken)
+	req, err := grb.Build(ctx, http.MethodGet, "/search/repositories")
+	fmt.Println(req.URL.String())
 	if err != nil {
 		return external.RepositoriesResponse{}, nil
 	}
@@ -60,8 +62,7 @@ func (ghRepository *GithubApiRepositoryImpl) GetLanguages(ctx context.Context, p
 
 func NewGithubApiRepositoryImpl(githubApiBaseUrl, githubToken string, httpProvider providers.HttpProvider) *GithubApiRepositoryImpl {
 	return &GithubApiRepositoryImpl{
-		GithubApiBaseUrl: githubApiBaseUrl,
-		githubToken:      githubToken,
-		HttpProvider:     httpProvider,
+		githubToken:  githubToken,
+		HttpProvider: httpProvider,
 	}
 }

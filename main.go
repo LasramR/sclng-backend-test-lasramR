@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/LasramR/sclng-backend-test-lasramR/api"
+	"github.com/LasramR/sclng-backend-test-lasramR/builder"
 	provider "github.com/LasramR/sclng-backend-test-lasramR/providers"
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
 	"github.com/LasramR/sclng-backend-test-lasramR/services"
@@ -40,7 +41,7 @@ func main() {
 
 	log.Info("Initializing routes")
 	router := handlers.NewRouter(log)
-	router.HandleFunc("/repositories", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService)))
+	router.HandleFunc("/repositories", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService, builder.GITHUB_API_2022_11_28)))
 	// GET /repos
 	// GET /stats
 

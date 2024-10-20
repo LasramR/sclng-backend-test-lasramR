@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LasramR/sclng-backend-test-lasramR/builder"
 	"github.com/LasramR/sclng-backend-test-lasramR/model"
 	"github.com/LasramR/sclng-backend-test-lasramR/model/external"
 	"github.com/LasramR/sclng-backend-test-lasramR/repositories"
@@ -13,18 +14,18 @@ import (
 )
 
 type GithubService interface {
-	GetGithubProjectsWithStats(ctx context.Context) ([]*model.Repository, error)
+	GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) ([]*model.Repository, error)
 }
 
 type GithubServiceImpl struct {
 	GithubRepository repositories.GithubApiRepository
 }
 
-func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context) ([]*model.Repository, error) {
+func (ghService *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) ([]*model.Repository, error) {
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
-	projectsFromApi, err := ghService.GithubRepository.GetProjects(timeoutCtx)
+	projectsFromApi, err := ghService.GithubRepository.GetProjects(timeoutCtx, grb)
 
 	if err != nil {
 		return nil, err
