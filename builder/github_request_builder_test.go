@@ -8,12 +8,24 @@ import (
 	"testing"
 )
 
-func TestGithubRequestBuilder20221128(t *testing.T) {
-	grb := NewGithubRequestBuilder20221128()
+func TestGithubRequestBuilder_UnsupportedVersion(t *testing.T) {
+	unsupportedVersion := GithubAPIVersion("Unsupported")
+	_, err := NewGithubRequestBuilder(unsupportedVersion)
+
+	if err == nil {
+		t.Fatalf("Github API version %s should NOT be supported", unsupportedVersion)
+	}
+}
+
+func TestGithubRequestBuilder_20221128(t *testing.T) {
+	grb, err := NewGithubRequestBuilder(GITHUB_API_2022_11_28)
+
+	if err != nil {
+		t.Fatalf("Github API version %s should be supported", GITHUB_API_2022_11_28)
+	}
 
 	grb.With("language", "Python")
 	grb.With("license", "apache2.0")
-	grb.Sort("something")
 
 	req, err := grb.Build(context.Background(), http.MethodGet, "https://api.github.com")
 
@@ -25,6 +37,6 @@ func TestGithubRequestBuilder20221128(t *testing.T) {
 
 	if req.URL.String() != expectedUrl {
 
-		t.Fatalf("Github request builder 2022-11-28 formating error")
+		t.Fatalf("GithubRequestBuilder %s URL formating error %s", GITHUB_API_2022_11_28, req.URL.String())
 	}
 }
