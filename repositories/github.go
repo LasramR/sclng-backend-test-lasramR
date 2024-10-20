@@ -24,7 +24,6 @@ type GithubApiRepositoryImpl struct {
 func (ghRepository *GithubApiRepositoryImpl) GetProjects(ctx context.Context, grb builder.GithubRequestBuilder) (external.RepositoriesResponse, error) {
 	grb.Authorization(ghRepository.githubToken)
 	req, err := grb.Build(ctx, http.MethodGet, "/search/repositories")
-	fmt.Println(req.URL.String())
 	if err != nil {
 		return external.RepositoriesResponse{}, nil
 	}

@@ -2,9 +2,9 @@ package builder
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -25,18 +25,32 @@ func TestGithubRequestBuilder_20221128(t *testing.T) {
 	}
 
 	_ = grb.With("language", "Python")
-	_ = grb.With("license", "apache2.0")
+	_ = grb.With("license", "apache-2.0")
+	_ = grb.Limit(80)
 
 	req, err := grb.Build(context.Background(), http.MethodGet, "/search/repositories")
-
-	expectedUrl := fmt.Sprintf("https://api.github.com/search/repositories?q=%s", url.QueryEscape("is:public language:Python license:apache2.0"))
 
 	if err != nil {
 		t.Fatalf("Github request builder with valid parameters should not return an error")
 	}
 
-	if req.URL.String() != expectedUrl {
+	if !strings.Contains(req.URL.String(), url.QueryEscape("is:public")) {
+		t.Fatalf("GithubRequestBuilder %s missing is:public from built request URL", GITHUB_API_2022_11_28)
+	}
 
-		t.Fatalf("GithubRequestBuilder %s URL formating error", GITHUB_API_2022_11_28)
+	if !strings.Contains(req.URL.String(), url.QueryEscape("language:Python")) {
+		t.Fatalf("GithubRequestBuilder %s missing language:Python from built request URL", GITHUB_API_2022_11_28)
+	}
+
+	if !strings.Contains(req.URL.String(), url.QueryEscape("license:apache-2.0")) {
+		t.Fatalf("GithubRequestBuilder %s missing license:apache-2.0 from built request URL", GITHUB_API_2022_11_28)
+	}
+
+	if !strings.Contains(req.URL.String(), "per_page=80") {
+		t.Fatalf("GithubRequestBuilder %s missing per_page=80 from built request URL", GITHUB_API_2022_11_28)
+	}
+
+	if !strings.Contains(req.URL.String(), "page=1") {
+		t.Fatalf("GithubRequestBuilder %s missing page=1 from built request URL", GITHUB_API_2022_11_28)
 	}
 }

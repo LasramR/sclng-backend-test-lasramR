@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 )
 
+// Handle nullable json field of a json object with the use of a IsNull flag
 type NullableJsonField[T any] struct {
 	Value  T
 	IsNull bool
