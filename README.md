@@ -315,6 +315,8 @@ My [Github Query Builder](./builder/github_request_builder.go) is a struct that 
 
 This means that if GitHub changes it's API, after ajusting the configuration of the Github Query Builder, the other components of my applications will not require changes.
 
+This also means that the way users interacts with our services will not changes even if Github changes his API model.
+
 The Mappers are function used to create an object from my API model from an external model (ie the Github API response). Thus if for some reason, Github decides to changes their API model, after adjusting the configuration of the Mappers function, the other components of my applications will not require changes.
 
 Note: the mapping function I used are relying on the [AsyncListMapper](./util/mapper.go) discussed before.
