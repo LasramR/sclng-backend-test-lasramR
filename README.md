@@ -320,6 +320,120 @@ I also implemented some inversion of controll with the use of [providers](./prov
 
 The following diagram represent the life cycle of a user request in the system :
 
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant RH as /repos handler
+  participant GRB as GithubRequestBuilder
+  participant GS as GithubService
+  participant GR as GithubRepository
+  participant CP as CacheProvider
+  participant HP as HTTPProvider
+  participant G as Github
+  participant ALM as AsyncListMapper
+
+  U --> RH : GET /repos?language=Go&limit=10
+  note over RH : Check method
+  alt if method is not GET
+    RH --> U : Respond with error
+  end
+
+  U --> CP : Check cache
+  CP --> U : error
+  alt if value was in cache
+    RH --> U : Respond with success
+  end
+
+  note over RH : Check limit query parameter
+  alt if limit is invalid
+    RH --> U : Respond with error
+  end
+  note over RH : Check page query parameter
+  alt if page is invalid
+    RH --> U : Respond with error
+  end
+  note over RH : Check sort query parameter
+  alt if sort is invalid
+    RH --> U : Respond with error
+  end
+  RH --> GRB : NewGithubRequestBuilder()
+
+  loop for leftovers in query args
+    note over RH : Configure GithubRequestBuilder
+    RH --> GRB : With()
+    GRB --> RH : err
+  end
+
+  alt if GithubRequestBuilder returned an error
+    RH --> U : Respond with error
+  end
+
+  RH --> GS : GetRepositories(ctx, GithubRequestBuilder)
+  GS --> GR : GetManyRepositories(ctx, GithubRequestBuilder)
+  GR --> CP : Check cache
+
+  alt if not in cache
+    GR --> GRB : Add authentication
+    GRB --> GR : Build request object
+    GR --> HP : Send HTTP Request and unmarshall body
+    HP --> G : GET https://api.github.com/search/repositories?...
+    HP --> GR : return error
+    alt if request error
+      GR --> GS : return error
+    end
+    GR --> CP : Set in cache
+  end
+
+  GR --> ALM : Transform API response
+
+  note over ALM : Create return buffers
+  note over ALM : Create buffered channel
+  note over ALM : Create WG
+  loop Transform each items concurrently
+    par transform API response in parallel 
+      ALM --> CP : Check Cache
+      alt if value cached
+        note over ALM : pipe value to channel 
+      end
+      ALM --> HP : Request element language URL
+      HP --> G : GET https://api.github.com/org/repos/languages
+      HP --> ALM : return error
+      alt if request error
+        note over ALM : pipe error to channel
+      end
+      ALM --> CP : Set in cache
+      note over ALM : Build model object
+      note over ALM : pipe object to channel
+    end
+  end
+  par wait for each go routine to end
+    note over ALM : wg.Done()
+  end
+
+  loop for incomming from channel
+    note over ALM : set in buffer
+  end
+
+  ALM --> GR : Return mapped API response
+
+  alt if all error
+    GR --> GS : Return error
+  end
+
+  GR --> CP : Set in cache
+  GR --> GS : Return mapped API response
+  GS --> RH : Return GithubRepository return value
+
+  alt if error 
+    RH --> U : Respond with error
+  end
+
+  RH --> CP : Set in cache
+  note over RH : Create API response object
+  RH --> U : Respond with success
+```
+
+
 ## Metas
 
 I spent around 15 hours on the test (excluding doc).
