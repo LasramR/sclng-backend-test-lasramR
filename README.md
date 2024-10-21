@@ -75,6 +75,8 @@ App can be booted using :
 docker compose up
 ```
 
+You must have a `.env` file, even if it is empty.
+
 You should be able to access the app using `http://localhost:$PORT/repos`
 
 ## [API](#api)
