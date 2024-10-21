@@ -41,7 +41,7 @@ type githubRequestBuilderAPIVersionned struct {
 	apiBaseUrl              string
 	authorizationSetterFunc authorizationSetter
 	authorizationValue      string
-	supportedParams         []string
+	supportedParams         map[string]string
 	paramSetterFunc         githubParamSetter
 	params                  map[string]string
 	supportedSort           []string
@@ -90,7 +90,7 @@ func (grb *githubRequestBuilderAPIVersionned) Authorization(value string) {
 	}
 }
 func (grb *githubRequestBuilderAPIVersionned) With(key, value string) error {
-	if slices.Contains(grb.supportedParams, key) && value != "" {
+	if _, ok := grb.supportedParams[key]; ok && value != "" {
 		grb.params[key] = value
 		return nil
 	}
@@ -135,12 +135,12 @@ func NewGithubRequestBuilder(ApiVersion version.GithubAPIVersion) (GithubRequest
 			authorizationSetterFunc: func(hrb *util.HttpRequestBuilder, authorization string) {
 				hrb.AddHeader("Authorization", []string{fmt.Sprintf("Bearer %s", authorization)})
 			},
-			supportedParams: []string{
-				"language",
-				"license",
-				"user",
-				"org",
-				"repo",
+			supportedParams: map[string]string{
+				"language":  "language",
+				"license":   "license",
+				"user":      "user",
+				"org":       "org",
+				"full_name": "repo",
 			},
 			params: map[string]string{"is": "public"},
 			paramSetterFunc: func(hrb *util.HttpRequestBuilder, params map[string]string) {

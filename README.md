@@ -130,12 +130,12 @@ Here are supported filtering parameters :
 * license, the license name of the repos
 * user, the user owning the repos
 * org, the organization owning the repos
-* repo, the full name of the repos
+* full_name, the full name of the repos
 
 All these parameters are string parameters
 
 Usage :
-* `/repos?repo=jquery/jquery`
+* `/repos?full_name=jquery/jquery`
 * `/repos?language=python`
 * `/repos?org=Scalingo`
 
@@ -185,7 +185,7 @@ curl http://localhost:$PORT/repos?org=Scalingo&language=Go&limit=10 > scalingoLa
 * Get the jquery/jquery repository
 
 ```bash
-curl http://localhost:$PORT/repos?repo=jquery/jquery > jqueryRepository
+curl http://localhost:$PORT/repos?full_name=jquery/jquery > jqueryRepository
 ```
 
 ### Project structure
@@ -247,10 +247,87 @@ flowchart LR
     A --> |fetch data from| G
 ```
 
-### Third parties
-
 ## Design choice and operation
 
 ### API Performances
 
+One of the main goal of the project was to respond as fast as possible.
+
+To ensure fast responses I used :
+
+#### Parrarel processing
+
+To aggregate data from the Github API multiple request to the API are required to ensure scalabilty.
+
+In my case, the data retrieving process was as follow :
+* Query the github search API to retrieve data about repositories
+* For each repository, query the corresponding language_url to retrieve the language stats
+
+I implemented an [AsyncListMapper]./util/mapper.go) that allows me to concurrently transform a source array of **n** elements to a destination array of **n** element.
+
+This function creates :
+* a wait group
+* a buffered chan of length n
+* n go routines
+
+And will transform an element using a Mapping function, waiting for the entire mapping process to finish thanks to the wait group.
+
+It will will returns an array of the transformed elements and an array of error.
+
+This function keeps the original order of the sources.
+
+Even though this function can be used for multiple concurrent processing (ie source array needs more than n go routines to achieve the mapping process) its design focus to perform a single mapping as it suits my needs
+
+#### Redis caching
+
+To avoid over requesting the Github API (ending being rate limited) and to deliver faster response I implemented a Redis cache.
+
+The redis cache is caches :
+* the result of a given URL, using the [FullUrlFromRequest](./util/url.go) I added, we ensure that the order of the query parameters doesn't matter.
+* each results of Github API call, some request may need to query a repository language_url we saw before, caching this responses allows us to omit the request time.
+
+This cache also improve the horizontal scalability of our app : we may create a Kubernetes deployment with replicas that all interacts we our redis cache, to provide a better work load.
+
 ### Clean architecture
+
+I decided to go with a "Clean architecture" approach because of the following reasoning :
+
+* The GitHub API should not describe the usage or the data model of our app.
+
+To ensure that the app is not coupled I used two mecanisms :
+* QueryBuilder
+* Mappers
+
+My [Github Query Builder](./builder/github_request_builder.go) is a struct that takes as argument "Setter function" and "Transform function". With this struct I can create a valid Github API request given a configuration.
+
+This means that if GitHub changes it's API, after ajusting the configuration of the Github Query Builder, the other components of my applications will not require changes.
+
+The Mappers are function used to create an object from my API model from an external model (ie the Github API response). Thus if for some reason, Github decides to changes their API model, after adjusting the configuration of the Mappers function, the other components of my applications will not require changes.
+
+Note: the mapping function I used are relying on the [AsyncListMapper](./util/mapper.go) discussed before.
+
+In addition to these two mecanism, I layered the project in a traditionnal way :
+* Controllers (Transport)
+* Services (Business)
+* Repositories (Data layer)
+
+This layering allows me to perform dependency injection of my components, providing decoupling, easier testability and suitable for changes.
+
+I also implemented some inversion of controll with the use of [providers](./providers), these providers exports interfaces that describes the usage of external mecanisms. These providers provides better testability and changes : if can easily changes my cache provider from redis to in-memory for example.
+
+
+### Request life cycle
+
+The following diagram represent the life cycle of a user request in the system :
+
+## Metas
+
+I spent around 15 hours on the test (excluding doc).
+
+Despite the extra work, I decided to went for a clean architecture and introduce concepts such as unit testing, DI, IoC for learning purposes.
+
+I actually learned a lot about the go standard library such as context for example.
+
+App Benchmarks :
+* Filtered request about 10 Github repositories : ~1s, 0.01s cached
+* Filtered request about 100 Github repositories : ~3.5s raw, 0.02s cached
