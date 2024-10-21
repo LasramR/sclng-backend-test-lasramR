@@ -29,6 +29,8 @@ func TestGithubRequestBuilder_20221128(t *testing.T) {
 	_ = grb.With("language", "Python")
 	_ = grb.With("license", "apache-2.0")
 	_ = grb.Limit(80)
+	_ = grb.Sort("updated")
+	grb.Authorization("mytoken")
 
 	req, err := grb.Build(context.Background(), http.MethodGet, "/search/repositories")
 
@@ -53,6 +55,10 @@ func TestGithubRequestBuilder_20221128(t *testing.T) {
 	}
 
 	if !strings.Contains(req.URL.String(), "page=1") {
+		t.Fatalf("GithubRequestBuilder %s missing page=1 from built request URL", version.GITHUB_API_2022_11_28)
+	}
+
+	if !strings.Contains(req.URL.String(), "sort=updated") {
 		t.Fatalf("GithubRequestBuilder %s missing page=1 from built request URL", version.GITHUB_API_2022_11_28)
 	}
 }

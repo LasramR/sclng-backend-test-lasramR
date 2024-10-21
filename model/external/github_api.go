@@ -22,11 +22,13 @@ type RepositoriesResponseItem struct {
 	Id           int                                 `json:"id"`
 	Name         string                              `json:"name"`
 	FullName     string                              `json:"full_name"`
+	Description  string                              `json:"description"`
 	Owner        ItemOwner                           `json:"owner"`
 	Url          string                              `json:"url"`
 	LanguagesUrl string                              `json:"languages_url"`
 	License      util.NullableJsonField[ItemLicense] `json:"license"`
-	UpdatedAt    string                              `json:"updated_at"` // TODO replace with time or custom marshaller
+	CreatedAt    string                              `json:"created_at"`
+	UpdatedAt    string                              `json:"updated_at"`
 	Size         int                                 `json:"size"`
 }
 

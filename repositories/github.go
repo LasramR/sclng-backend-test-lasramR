@@ -15,9 +15,11 @@ import (
 	"github.com/LasramR/sclng-backend-test-lasramR/util"
 )
 
+// Represent an aggregated Response from Github API
 type GithubRepositoriesResult struct {
 	Repositories []*model.Repository `json:"repositories"`
-	Total        int                 `json:"total"`
+	// Describe the total number of matching projects from the response api, not len(Repositories)
+	Total int `json:"total"`
 	// Set to true if some sub aggregations failed
 	IncompleteResult bool `json:"incomplete_result"`
 }
@@ -30,10 +32,11 @@ type GithubApiRepository interface {
 
 // Parametized implementation of the GitHub repository that abstracts the entity mapping process
 type githubVersionnedApiRepository[T any, M util.Mappable[T]] struct {
-	githubToken   string
-	httpProvider  providers.HttpProvider
-	cacheProvider providers.CacheProvider
-	mapperFunc    util.MapperFunc[T, *model.Repository]
+	githubToken        string
+	httpProvider       providers.HttpProvider
+	cacheProvider      providers.CacheProvider
+	mapperFunc         util.MapperFunc[T, *model.Repository]
+	cacheDurationInMin time.Duration
 }
 
 func (gr *githubVersionnedApiRepository[T, M]) GetManyRepositories(ctx context.Context, grb builder.GithubRequestBuilder) (GithubRepositoriesResult, error) {
@@ -67,7 +70,7 @@ func (gr *githubVersionnedApiRepository[T, M]) GetManyRepositories(ctx context.C
 
 	// If we had some results, we cache it
 	if len(errorsCollected) != len(apiResponse.Items()) {
-		_ = gr.cacheProvider.SetMarshalled(ctx, requestUrl, repositories, time.Minute*5)
+		_ = gr.cacheProvider.SetMarshalled(ctx, requestUrl, repositories, time.Minute*gr.cacheDurationInMin)
 	}
 
 	return GithubRepositoriesResult{
@@ -78,13 +81,14 @@ func (gr *githubVersionnedApiRepository[T, M]) GetManyRepositories(ctx context.C
 }
 
 // Factory method that creates a GithubApiRepository for a specific API version, err != nil if API version is not supported
-func NewGithubApiRepository(apiVersion version.GithubAPIVersion, httpProvider providers.HttpProvider, cacheProvider providers.CacheProvider, githubToken string) (GithubApiRepository, error) {
+func NewGithubApiRepository(apiVersion version.GithubAPIVersion, httpProvider providers.HttpProvider, cacheProvider providers.CacheProvider, cacheDurationInMin time.Duration, githubToken string) (GithubApiRepository, error) {
 	switch apiVersion {
 	case version.GITHUB_API_2022_11_28:
 		return &githubVersionnedApiRepository[external.RepositoriesResponseItem, external.RepositoriesResponse]{
-			githubToken:   githubToken,
-			httpProvider:  httpProvider,
-			cacheProvider: cacheProvider,
+			githubToken:        githubToken,
+			httpProvider:       httpProvider,
+			cacheProvider:      cacheProvider,
+			cacheDurationInMin: cacheDurationInMin,
 			// Mapper function converts items of the external model to our model
 			mapperFunc: func(ctx context.Context, rawRepository external.RepositoriesResponseItem) (*model.Repository, error) {
 				req, err := http.NewRequest(http.MethodGet, rawRepository.LanguagesUrl, nil)
@@ -122,6 +126,7 @@ func NewGithubApiRepository(apiVersion version.GithubAPIVersion, httpProvider pr
 					FullName:      rawRepository.FullName,
 					Owner:         rawRepository.Owner.Login,
 					Repository:    rawRepository.Name,
+					Description:   rawRepository.Description,
 					RepositoryUrl: fmt.Sprintf("https://github.com/%s", rawRepository.FullName),
 					Languages:     languages,
 					License: util.NullableJsonField[string]{
@@ -129,11 +134,12 @@ func NewGithubApiRepository(apiVersion version.GithubAPIVersion, httpProvider pr
 						IsNull: rawRepository.License.IsNull,
 					},
 					Size:      rawRepository.Size,
+					CreatedAt: rawRepository.CreatedAt,
 					UpdatedAt: rawRepository.UpdatedAt,
 				}
 
 				if err == nil {
-					_ = cacheProvider.SetMarshalled(ctx, requestUrl, repository, time.Minute*5)
+					_ = cacheProvider.SetMarshalled(ctx, requestUrl, repository, time.Minute*cacheDurationInMin)
 				}
 
 				return &repository, nil

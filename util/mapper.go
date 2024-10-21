@@ -6,11 +6,13 @@ import (
 	"time"
 )
 
+// Ensure that type T can yield inner items and count
 type Mappable[T any] interface {
 	Items() []T
 	Count() int
 }
 
+// Mapping function of an AsyncListMapper operation
 type MapperFunc[S, D any] func(ctx context.Context, s S) (D, error)
 
 // Given a Mappable source of type S, asynchronously transform the element to an array of type D

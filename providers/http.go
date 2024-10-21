@@ -16,11 +16,12 @@ type NativeHttpClient struct {
 	Do func(req *http.Request) (*http.Response, error)
 }
 
-type NativeHttpProvider struct {
+// HttpProvider based on the standard library
+type nativeHttpProvider struct {
 	client NativeHttpClient
 }
 
-func (provider *NativeHttpProvider) ReqUnmarshalledBody(req *http.Request, unMarshalledResBody any) error {
+func (provider *nativeHttpProvider) ReqUnmarshalledBody(req *http.Request, unMarshalledResBody any) error {
 	response, err := provider.client.Do(req)
 
 	if err != nil {
@@ -32,7 +33,7 @@ func (provider *NativeHttpProvider) ReqUnmarshalledBody(req *http.Request, unMar
 }
 
 func NewNativeHttpProvider(client NativeHttpClient) HttpProvider {
-	return &NativeHttpProvider{
+	return &nativeHttpProvider{
 		client: client,
 	}
 }

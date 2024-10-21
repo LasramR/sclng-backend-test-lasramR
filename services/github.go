@@ -14,11 +14,11 @@ type GithubService interface {
 	GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) (repositories.GithubRepositoriesResult, error)
 }
 
-type GithubServiceImpl struct {
+type githubServiceImpl struct {
 	GithubRepository repositories.GithubApiRepository
 }
 
-func (gs *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) (repositories.GithubRepositoriesResult, error) {
+func (gs *githubServiceImpl) GetGithubProjectsWithStats(ctx context.Context, grb builder.GithubRequestBuilder) (repositories.GithubRepositoriesResult, error) {
 	timeoutCtx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
 	defer cancelTimeout()
 
@@ -32,7 +32,7 @@ func (gs *GithubServiceImpl) GetGithubProjectsWithStats(ctx context.Context, grb
 }
 
 func NewGithubService(gr repositories.GithubApiRepository) GithubService {
-	return &GithubServiceImpl{
+	return &githubServiceImpl{
 		GithubRepository: gr,
 	}
 }

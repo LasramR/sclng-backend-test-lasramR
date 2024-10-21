@@ -103,7 +103,7 @@ func (grb *githubRequestBuilderAPIVersionned) Sort(value string) error {
 		return nil
 	}
 
-	return fmt.Errorf("%s sorting is not supported", value)
+	return fmt.Errorf("%s sorting is not supported [%s] allowed", value, strings.Join(grb.supportedSort, ","))
 }
 
 func (grb *githubRequestBuilderAPIVersionned) Limit(value int) error {
@@ -131,7 +131,7 @@ func NewGithubRequestBuilder(ApiVersion version.GithubAPIVersion) (GithubRequest
 		return &githubRequestBuilderAPIVersionned{
 			apiVersion:    version.GITHUB_API_2022_11_28,
 			apiBaseUrl:    "https://api.github.com",
-			supportedSort: []string{"created", "updated", "comments"},
+			supportedSort: []string{"updated", "forks", "stars"},
 			authorizationSetterFunc: func(hrb *util.HttpRequestBuilder, authorization string) {
 				hrb.AddHeader("Authorization", []string{fmt.Sprintf("Bearer %s", authorization)})
 			},
@@ -152,6 +152,7 @@ func NewGithubRequestBuilder(ApiVersion version.GithubAPIVersion) (GithubRequest
 				hrb.AddQueryParam("q", strings.Join(stringifiedParams, " "))
 			},
 			sortSetter: func(hrb *util.HttpRequestBuilder, sort string) {
+				hrb.AddQueryParam("sort", sort)
 			},
 			maxLimit: 100,
 			limitSetterFunc: func(hrb *util.HttpRequestBuilder, limit int) {

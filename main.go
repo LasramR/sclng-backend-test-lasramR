@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/LasramR/sclng-backend-test-lasramR/api"
 	"github.com/LasramR/sclng-backend-test-lasramR/model/version"
@@ -44,8 +45,8 @@ func main() {
 		Protocol: 2, // Connection protocol
 	})
 
-	if rdb.Ping(context.Background()).Err() != nil {
-		log.Fatalf("could not connect to redis")
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("could not connect to redis: %s", err.Error())
 	}
 
 	cacheProvider := providers.NewRedisCacheProvider(&providers.RedisClient{
@@ -56,19 +57,20 @@ func main() {
 
 	log.WithFields(logrus.Fields{}).Info("Initializing services")
 	githubApiRepository, err := repositories.NewGithubApiRepository(
-		version.GITHUB_API_2022_11_28,
+		version.GithubAPIVersion(cfg.GithubApiVersion),
 		httpProvider,
 		cacheProvider,
+		time.Duration(cfg.CacheDurationInMin),
 		cfg.GithubToken,
 	)
 	if err != nil {
-		log.Fatalf("could not initialize github repository")
+		log.Fatalf("could not initialize github repository: %s", err.Error())
 	}
 	githubService := services.NewGithubService(githubApiRepository)
 
 	log.Info("Initializing routes")
 	router := handlers.NewRouter(log)
-	router.HandleFunc("/repos", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService, cacheProvider, version.GITHUB_API_2022_11_28)))
+	router.HandleFunc("/repos", handlers.HandlerFunc(api.GitHubProjectsHandler(githubService, cacheProvider, time.Duration(cfg.CacheDurationInMin), version.GithubAPIVersion(cfg.GithubApiVersion))))
 
 	log = log.WithField("port", cfg.Port)
 	log.Info("Listening...")

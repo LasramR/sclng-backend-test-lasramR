@@ -53,6 +53,7 @@ func successFallback(w http.ResponseWriter, r *http.Request, repos repositories.
 func GitHubProjectsHandler(
 	githubService services.GithubService,
 	cacheProvider providers.CacheProvider,
+	cacheDurationInMin time.Duration,
 	apiVersion version.GithubAPIVersion,
 ) util.ScalingoHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, _ map[string]string) error {
@@ -114,6 +115,16 @@ func GitHubProjectsHandler(
 			}
 		}
 
+		// Setting Github query sorting order if set in query
+		sort := queryParams.Get("sort")
+		if sort != "" {
+			queryParams.Del("sort")
+			err = grb.Sort(sort)
+			if err != nil {
+				log.WithError(err).Error(err)
+				return errorFallback(w, []string{err.Error()}, http.StatusBadRequest)
+			}
+		}
 		// Consumming leftovers query parameters
 		queryParamsErrors := make([]string, 0, len(queryParams))
 		for k, v := range queryParams {
@@ -139,7 +150,7 @@ func GitHubProjectsHandler(
 		}
 
 		// Set in cache
-		_ = cacheProvider.SetMarshalled(ctx, requestUrl, repos, time.Minute*5)
+		_ = cacheProvider.SetMarshalled(ctx, requestUrl, repos, time.Minute*cacheDurationInMin)
 
 		return successFallback(w, r, repos)
 	}
