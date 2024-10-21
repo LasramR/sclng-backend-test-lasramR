@@ -56,6 +56,17 @@ Here are the differents variables used by the projects :
 
 Note: despite all these variables being optionnal, you must set up a github authentication token otherwise the app will run in limited mode (only 60 queries / hour to the GitHub REST API). To create a Github authentication token see [Github Doc](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token).
 
+Here is a sample of a working `.env` file :
+
+```py
+PORT=5000
+GITHUB_TOKEN="YOUR GITHUB TOKEN"
+GITHUB_API_VERSION="2022-11-28"
+REDIS_PORT=6379
+REDIS_PASSWORD=HelloGo
+CACHE_DURATION_IN_MIN=5
+```
+
 ## Execution
 
 App can be booted using :
@@ -439,8 +450,6 @@ sequenceDiagram
 I spent around 15 hours on the test (excluding doc).
 
 Despite the extra work, I decided to went for a clean architecture and introduce concepts such as unit testing, DI, IoC for learning purposes.
-
-I actually learned a lot about the go standard library such as context for example.
 
 App Benchmarks :
 * Filtered request about 10 Github repositories : ~1s, 0.01s cached
