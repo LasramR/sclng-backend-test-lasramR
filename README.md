@@ -4,20 +4,20 @@
 
 This is my submission for the Scalingo "Hard-skills" tests.
 
-My design focus on "Clean architecture" by ensuring that each layer of the application (transport, business logic, data fetching, ...) works independently.
+My design focuses on "Clean architecture" by ensuring that each layer of the application (transport, business logic, data fetching, ...) works independently.
 
-With the use of common techniques such as "Dependency Injection" and "Inversion Of Control", the code I provided is decoupled and is designed to support change : the app is relying on the GitHub REST API to fetch data, wanna change to the graphQL API ? No problem, as this design of code emphasize maintainability and extendability.
+With the use of common techniques such as "Dependency Injection" and "Inversion Of Control", the code I provided is decoupled and is designed to support changes : the app is relying on the GitHub REST API to fetch data, wanna change to the graphQL API ? No problems, as this design of code emphasize maintainability and extendability.
 
 Finally, given the tests constraints, attention has been given to the application performances : concurrent processing has been implemented whenever possible and data caching has been implemented in order to respond as fast as possible.
 
 ### Functionnalities
 
 * The projects allows to retrieve aggregated data about up to 100 public Github repositories.
-* By default, result will be sorted by the date they have been pushed to github but can be sorted by other
-* Results can be filtered by different parameters such as : language, license, org, user, repos 
+* By default, results will be sorted by the date they have been pushed to github but can be sorted by other ways.
+* Results can be filtered by different parameters such as : language, license, org, user, repos, ... 
 * Results contains additionnal metadata about the request such as the next page url, the total count of matching repositories on github, ...
 
-For details see [API](#api)
+For details, see [API](#api)
 
 ## Configuration
 
@@ -29,7 +29,7 @@ git clone https://github.com/LasramR/sclng-backend-test-lasramR.git
 
 #### .env based app configuration
 
-The project rely on the usage of a `.env` files to configures internals values. These values are used to configure the app behavior and the container infrastructure. 
+The project rely on the usage of a `.env` files to configure internals values. These values are used to configure the app behavior and the containers infrastructure. 
 
 To start configuring the project, at project root, create a `.env` file :
 
@@ -45,7 +45,7 @@ SOME_VARIABLE=SomeValue
 
 Here are the differents variables used by the projects :
 
-| Name | Value type | Default | Optionnal |
+| Name | Value type | Default | Optional |
 | --- | --- | --- | --- |
 |PORT | Integer between 1024 and 49152 | 5000 | Yes |
 |GITHUB_API_VERSION | String | 2022-11-28 | Yes |
@@ -54,7 +54,7 @@ Here are the differents variables used by the projects :
 |REDIS_PASSWORD | String | | Yes |
 |CACHE_DURATION_IN_MIN | Integer > 0 | 5 | Yes |
 
-Note: despite all these variables being optionnal, you must set up a github authentication token otherwise the app will run in limited mode (only 60 queries / hour to the GitHub REST API). To create a Github authentication token see [Github Doc](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token).
+Note: despite all these variables being optional, you must set up a github authentication token, otherwise the app will run in limited mode (only 60 queries / hour to the GitHub REST API). To create a Github authentication token see [Github Doc](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token).
 
 Here is a sample of a working `.env` file :
 
@@ -97,8 +97,8 @@ The endpoint will return a jsoned object as follow :
 
 ```json
 {
-  "total_count": "int", // Total number of repository on github that matched the request
-  "count": "int", // Number of repository returned by the API
+  "total_count": "int", // Total number of repositories on github that matched the request
+  "count": "int", // Number of repositories returned by the API
   "content": []"null"|{ // Aggregated data from Github, null entries means that the corresponding data aggregation failed 
     "full_name": "string", // Repository full name : owner + name
     "owner": "string", // User name or organisation owning the repository
@@ -138,14 +138,14 @@ If the response code is not included between 200 and 299, an error has been resp
 
 Result can be filtered by different parameters using query parameters.
 
-Here are supported filtering parameters :
+Here are the supported filtering parameters :
 * language, the main programming language of the repos 
 * license, the license name of the repos
 * user, the user owning the repos
 * org, the organization owning the repos
 * full_name, the full name of the repos
 
-All these parameters are string parameters
+All these parameters are string parameters.
 
 Usage :
 * `/repos?full_name=jquery/jquery`
@@ -153,6 +153,7 @@ Usage :
 * `/repos?org=Scalingo`
 
 Of course they can be additionned :
+
 Usage :
 * `/repos?org=Scalingo&language=Go`
 
@@ -165,13 +166,13 @@ Sorting may take one of the following values :
 * forks: Sort results by number of forks
 * stars: Sort results by number of stars
 
-Results are defaultly sorted by push time (ie datetime of `git push` command)
+Results are defaultly sorted by push time (ie datetime of `git push` command).
 
 #### Limiting
 
 Result count can be limited between 1 and 100 with the use of the **limit** query parameter.
 
-**limit** is an integer between 1 and 100
+**limit** is an integer between 1 and 100.
 
 Usage : `/repos?limit=50
 
@@ -198,7 +199,7 @@ curl http://localhost:$PORT/repos?org=Scalingo&language=Go&limit=10 > scalingoLa
 * Get the jquery/jquery repository
 
 ```bash
-curl http://localhost:$PORT/repos?full_name=jquery/jquery > jqueryRepository
+curl http://localhost:$PORT/repos?full_name=jquery/jquery > jqueryRepository.json
 ```
 
 ### Project structure
@@ -235,7 +236,7 @@ The project structure is as follows :
 
 Boot sequence :
 - main.go will starts a new process
-- config.go will be used to parse in environment variable
+- config.go will be used to parse environment variables
 - main.go will created and configure the different layers
   - initializing providers
   - initializing services
@@ -270,32 +271,32 @@ To ensure fast responses I used :
 
 #### Parrarel processing
 
-To aggregate data from the Github API multiple request to the API are required to ensure scalabilty.
+To aggregate data from the Github API multiple requests to the API are required.
 
 In my case, the data retrieving process was as follow :
 * Query the github search API to retrieve data about repositories
 * For each repository, query the corresponding language_url to retrieve the language stats
 
-I implemented an [AsyncListMapper]./util/mapper.go) that allows me to concurrently transform a source array of **n** elements to a destination array of **n** element.
+I implemented an [AsyncListMapper](./util/mapper.go) that allows me to concurrently transform a source array of **n** elements to a destination array of **n** element.
 
 This function creates :
 * a wait group
 * a buffered chan of length n
 * n go routines
 
-And will transform an element using a Mapping function, waiting for the entire mapping process to finish thanks to the wait group.
+And will transform an element using a Mapping function, waiting for the entire mapping process to finish, thanks to the wait group.
 
 It will will returns an array of the transformed elements and an array of error.
 
 This function keeps the original order of the sources.
 
-Even though this function can be used for multiple concurrent processing (ie source array needs more than n go routines to achieve the mapping process) its design focus to perform a single mapping as it suits my needs
+Even though this function can be used for multiple concurrent processing (ie source array needs more than n go routines to achieve the mapping process), its design focus to perform a single mapping as it suits my needs
 
 #### Redis caching
 
 To avoid over requesting the Github API (ending being rate limited) and to deliver faster response I implemented a Redis cache.
 
-The redis cache is caches :
+Redis is used to cache :
 * the result of a given URL, using the [FullUrlFromRequest](./util/url.go) I added, we ensure that the order of the query parameters doesn't matter.
 * each results of Github API call, some request may need to query a repository language_url we saw before, caching this responses allows us to omit the request time.
 
@@ -311,7 +312,7 @@ To ensure that the app is not coupled I used two mecanisms :
 * QueryBuilder
 * Mappers
 
-My [Github Query Builder](./builder/github_request_builder.go) is a struct that takes as argument "Setter function" and "Transform function". With this struct I can create a valid Github API request given a configuration.
+My [Github Query Builder](./builder/github_request_builder.go) is a struct that takes as arguments "Setter functions" and "Transform functions". With this struct I can create a valid Github API request given a configuration.
 
 This means that if GitHub changes it's API, after ajusting the configuration of the Github Query Builder, the other components of my applications will not require changes.
 
@@ -326,9 +327,9 @@ In addition to these two mecanism, I layered the project in a traditionnal way :
 * Services (Business)
 * Repositories (Data layer)
 
-This layering allows me to perform dependency injection of my components, providing decoupling, easier testability and suitable for changes.
+This layering allows me to perform dependency injection of my components, providing decoupling, easier testability and suitability for changes.
 
-I also implemented some inversion of controll with the use of [providers](./providers), these providers exports interfaces that describes the usage of external mecanisms. These providers provides better testability and changes : if can easily changes my cache provider from redis to in-memory for example.
+I also implemented some inversion of control with the use of [providers](./providers), these providers exports interfaces that describes the usage of external mecanisms. These providers provides better testability and changes : I can easily changes my cache provider from redis to in-memory for example.
 
 
 ### Request life cycle
